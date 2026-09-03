@@ -1,6 +1,6 @@
-﻿/**
- * ChronoPulse - Professional Precision Stopwatch, Timer & Live Turkey Clock
- * Strict 2-digit (00.00.00) Engine with Sub-Target Precision (e.g. 5.32s / 5.32h)
+/**
+ * ChronoPulse - Professional Precision Stopwatch, Timer, Live Clock & Global 1v1 VS Arena
+ * Worldwide Real-Time Multiplayer Sync via Public Global Cloud Relay + BroadcastChannel
  */
 
 // Initialize Lucide Icons
@@ -95,11 +95,17 @@ class SoundEngine {
       }, i * 350);
     }
   }
+
+  playChallengeInvite() {
+    if (!this.enabled) return;
+    this.playBeep(523.25, 'triangle', 0.15, 0.3);
+    setTimeout(() => this.playBeep(659.25, 'triangle', 0.15, 0.3), 120);
+    setTimeout(() => this.playBeep(783.99, 'triangle', 0.25, 0.35), 240);
+  }
 }
 
 const sounds = new SoundEngine();
 
-// Sound Toggle
 const soundToggleBtn = document.getElementById('soundToggleBtn');
 const soundIcon = document.getElementById('soundIcon');
 soundToggleBtn.addEventListener('click', () => {
@@ -114,7 +120,6 @@ soundToggleBtn.addEventListener('click', () => {
   lucide.createIcons();
 });
 
-// Fullscreen Toggle
 const fullscreenBtn = document.getElementById('fullscreenBtn');
 if (fullscreenBtn) {
   fullscreenBtn.addEventListener('click', () => {
@@ -152,7 +157,7 @@ navTabs.forEach(tab => {
 });
 
 /* ==========================================================================
-   3. KRONOMETRE & HEDEF MODU (DETAILED TARGET PRECISION)
+   3. KRONOMETRE & HEDEF MODU (STRICT 2-DIGIT 00.00.00 ENGINE)
    ========================================================================== */
 let swIsRunning = false;
 let swStartTime = 0;
@@ -160,7 +165,6 @@ let swElapsedTime = 0;
 let swRafId = null;
 let historyLaps = [];
 
-// DOM Elements
 const swPart1 = document.getElementById('swPart1');
 const swPart2 = document.getElementById('swPart2');
 const swPart3 = document.getElementById('swPart3');
@@ -191,9 +195,8 @@ const lapsContainer = document.getElementById('lapsContainer');
 const lapsList = document.getElementById('lapsList');
 const clearHistoryBtn = document.getElementById('clearHistoryBtn');
 
-let currentUnit = 'second'; // 'second', 'millisecond', 'hour'
+let currentUnit = 'second';
 
-// Update target layout & label
 function updateTargetLabel() {
   const mainVal = Math.max(0, parseInt(targetMainValue.value) || 0);
   const subVal = Math.max(0, parseInt(targetSubValue.value) || 0);
@@ -215,7 +218,6 @@ function updateTargetLabel() {
     formattedTarget = `${m}.${s}.${ms} (${mainVal}.${ms} Saniye)`;
 
   } else if (currentUnit === 'millisecond') {
-    // Millisecond doesn't need sub-dot
     targetDotSeparator.classList.add('hidden');
     targetSubValue.classList.add('hidden');
 
@@ -254,15 +256,11 @@ unitBtns.forEach(btn => {
 targetMainValue.addEventListener('input', updateTargetLabel);
 targetSubValue.addEventListener('input', updateTargetLabel);
 
-/**
- * Convert ms into strictly 2-digit integers:
- * Dakika (00-59), Saniye (00-59), Milisaniye (00-99)
- */
 function get2DigitTime(ms) {
   const totalSeconds = Math.floor(ms / 1000);
   const minutes = Math.floor(totalSeconds / 60) % 60;
   const seconds = totalSeconds % 60;
-  const ms2 = Math.floor((ms % 1000) / 10); // Exactly 00 to 99
+  const ms2 = Math.floor((ms % 1000) / 10);
 
   return {
     m: minutes,
@@ -308,14 +306,6 @@ function startStopwatch() {
   lucide.createIcons();
 }
 
-/**
- * Exact Evaluation across ALL units:
- * 0 difference -> "BETTER THAN TİMİ??"
- * 1 - 4 difference -> "TİMİ"
- * 5 - 10 difference -> "REALLY GOOD"
- * 11 - 15 difference -> "NORMAL"
- * > 15 difference -> "THİS REALLY BAD"
- */
 function evaluateResult(elapsedMs) {
   const mainVal = Math.max(0, parseInt(targetMainValue.value) || 0);
   const subVal = Math.max(0, parseInt(targetSubValue.value) || 0);
@@ -334,8 +324,6 @@ function evaluateResult(elapsedMs) {
   let icon = '';
 
   if (currentUnit === 'second') {
-    // Target is: mainVal seconds + subVal ms (0-99)
-    // Target in units = mainVal * 100 + subVal
     const actualUnits = (m * 60 + s) * 100 + ms2;
     const targetUnits = mainVal * 100 + (subVal % 100);
     const rawDiff = actualUnits - targetUnits;
@@ -365,8 +353,6 @@ function evaluateResult(elapsedMs) {
     diffText = `${sign}${diff} ms`;
 
   } else if (currentUnit === 'hour') {
-    // Target is: mainVal hours + subVal minutes (0-59)
-    // Target in seconds = mainVal * 3600 + subVal * 60
     const actualSeconds = m * 60 + s;
     const targetSeconds = mainVal * 3600 + (subVal % 60) * 60;
     const rawDiff = actualSeconds - targetSeconds;
@@ -381,7 +367,6 @@ function evaluateResult(elapsedMs) {
     diffText = `${sign}${diff} sn`;
   }
 
-  // Universal Milestone Evaluation across ALL units:
   if (diff === 0) {
     rank = 'EFSANEVİ (0 FARK)';
     title = 'BETTER THAN TİMİ??';
@@ -426,7 +411,6 @@ function evaluateResult(elapsedMs) {
     sounds.playBeep(220, 'sawtooth', 0.25, 0.2);
   }
 
-  // Populate Result Card
   resultTitle.textContent = title;
   resultDesc.textContent = desc;
   rankBadge.textContent = rank;
@@ -540,11 +524,7 @@ clearHistoryBtn.addEventListener('click', () => {
 
 function triggerConfetti() {
   if (typeof confetti === 'function') {
-    confetti({
-      particleCount: 100,
-      spread: 70,
-      origin: { y: 0.6 }
-    });
+    confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
   }
 }
 
@@ -552,15 +532,9 @@ function triggerMegaConfetti() {
   if (typeof confetti === 'function') {
     const count = 200;
     const defaults = { origin: { y: 0.7 } };
-
     function fire(particleRatio, opts) {
-      confetti({
-        ...defaults,
-        ...opts,
-        particleCount: Math.floor(count * particleRatio)
-      });
+      confetti({ ...defaults, ...opts, particleCount: Math.floor(count * particleRatio) });
     }
-
     fire(0.25, { spread: 26, startVelocity: 55 });
     fire(0.2, { spread: 60 });
     fire(0.35, { spread: 100, decay: 0.91, scalar: 0.8 });
@@ -586,6 +560,11 @@ document.addEventListener('keydown', (e) => {
     }
     e.preventDefault();
     
+    if (isArenaActive) {
+      handleArenaAction();
+      return;
+    }
+
     const stopwatchTab = document.getElementById('tab-stopwatch');
     if (!stopwatchTab.classList.contains('hidden')) {
       if (!swIsRunning) {
@@ -599,7 +578,7 @@ document.addEventListener('keydown', (e) => {
 
 
 /* ==========================================================================
-   4. ZAMANLAYICI (COUNTDOWN TIMER - 00.00.00 FORMAT)
+   4. ZAMANLAYICI & CANLI TÜRKİYE SAATİ
    ========================================================================== */
 let timerTotalSeconds = 300;
 let timerRemainingSeconds = 300;
@@ -627,7 +606,6 @@ function updateTimerDisplay() {
   const h = Math.floor(timerRemainingSeconds / 3600);
   const m = Math.floor((timerRemainingSeconds % 3600) / 60);
   const s = timerRemainingSeconds % 60;
-
   timerDigits.textContent = `${String(h).padStart(2, '0')}.${String(m).padStart(2, '0')}.${String(s).padStart(2, '0')}`;
 
   if (timerTotalSeconds > 0) {
@@ -655,9 +633,7 @@ function setTimerFromInputs() {
 
 [timerHoursInput, timerMinsInput, timerSecsInput].forEach(inp => {
   inp.addEventListener('input', () => {
-    if (!timerIsRunning) {
-      setTimerFromInputs();
-    }
+    if (!timerIsRunning) setTimerFromInputs();
   });
 });
 
@@ -674,9 +650,7 @@ presetBtns.forEach(btn => {
 });
 
 function startTimer() {
-  if (timerRemainingSeconds <= 0) {
-    setTimerFromInputs();
-  }
+  if (timerRemainingSeconds <= 0) setTimerFromInputs();
   if (timerRemainingSeconds <= 0) return;
 
   sounds.init();
@@ -731,34 +705,24 @@ function resetTimer() {
 }
 
 timerToggleBtn.addEventListener('click', () => {
-  if (!timerIsRunning) {
-    startTimer();
-  } else {
-    pauseTimer();
-  }
+  if (!timerIsRunning) startTimer();
+  else pauseTimer();
 });
-
 timerResetBtn.addEventListener('click', resetTimer);
-
 setTimerFromInputs();
 
-
-/* ==========================================================================
-   5. SAAT KAÇ? (CANLI TÜRKİYE SAATİ - 00.00.00 FORMAT)
-   ========================================================================== */
+// Live Turkey Clock
 const clockHours = document.getElementById('clockHours');
 const clockMinutes = document.getElementById('clockMinutes');
 const clockSeconds = document.getElementById('clockSeconds');
 const clockDate = document.getElementById('clockDate');
 const clockWeekDay = document.getElementById('clockWeekDay');
-
 const analogHour = document.getElementById('analogHour');
 const analogMin = document.getElementById('analogMin');
 const analogSec = document.getElementById('analogSec');
 
 function updateTurkeyClock() {
   const now = new Date();
-  
   const trOptions = { timeZone: 'Europe/Istanbul', hour12: false };
   const formatterTime = new Intl.DateTimeFormat('tr-TR', {
     ...trOptions,
@@ -779,36 +743,541 @@ function updateTurkeyClock() {
   clockMinutes.textContent = m;
   clockSeconds.textContent = s;
 
-  const formatterDate = new Intl.DateTimeFormat('tr-TR', {
-    timeZone: 'Europe/Istanbul',
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric'
-  });
+  const formatterDate = new Intl.DateTimeFormat('tr-TR', { timeZone: 'Europe/Istanbul', day: 'numeric', month: 'long', year: 'numeric' });
   clockDate.textContent = formatterDate.format(now);
-
-  const formatterDay = new Intl.DateTimeFormat('tr-TR', {
-    timeZone: 'Europe/Istanbul',
-    weekday: 'long'
-  });
+  const formatterDay = new Intl.DateTimeFormat('tr-TR', { timeZone: 'Europe/Istanbul', weekday: 'long' });
   clockWeekDay.textContent = formatterDay.format(now);
 
   const numH = parseInt(h, 10) % 12;
   const numM = parseInt(m, 10);
   const numS = parseInt(s, 10);
-
-  const secAngle = numS * 6;
-  const minAngle = numM * 6 + (numS * 0.1);
-  const hourAngle = (numH * 30) + (numM * 0.5);
-
-  analogSec.style.transform = `translateX(-50%) rotate(${secAngle}deg)`;
-  analogMin.style.transform = `translateX(-50%) rotate(${minAngle}deg)`;
-  analogHour.style.transform = `translateX(-50%) rotate(${hourAngle}deg)`;
+  analogSec.style.transform = `translateX(-50%) rotate(${numS * 6}deg)`;
+  analogMin.style.transform = `translateX(-50%) rotate(${numM * 6 + (numS * 0.1)}deg)`;
+  analogHour.style.transform = `translateX(-50%) rotate(${(numH * 30) + (numM * 0.5)}deg)`;
 }
 
 setInterval(updateTurkeyClock, 1000);
 updateTurkeyClock();
-
-// Initial call
 updateTargetLabel();
-lucide.createIcons();
+
+
+/* ==========================================================================
+   5. ⚔️ GLOBAL 1v1 VS ARENA - WORLDWIDE CLOUD REAL-TIME ENGINE
+   ========================================================================== */
+
+function generateRandomVsTarget() {
+  const isPureMs = Math.random() < 0.20;
+
+  if (isPureMs) {
+    const ms = Math.floor(Math.random() * (99 - 3 + 1)) + 3;
+    return {
+      unit: 'millisecond',
+      main: ms,
+      sub: 0
+    };
+  } else {
+    const sec = Math.floor(Math.random() * (10 - 3 + 1)) + 3;
+    let ms = 0;
+    if (Math.random() > 0.35) {
+      ms = Math.floor(Math.random() * 100);
+    }
+    return {
+      unit: 'second',
+      main: sec,
+      sub: ms
+    };
+  }
+}
+
+const myClientId = 'usr_' + Math.random().toString(36).substring(2, 9);
+let currentUsername = localStorage.getItem('chrono_username') || '';
+
+// DOM Elements
+const loginModal = document.getElementById('loginModal');
+const loginForm = document.getElementById('loginForm');
+const usernameInput = document.getElementById('usernameInput');
+const userProfileBtn = document.getElementById('userProfileBtn');
+const headerUsername = document.getElementById('headerUsername');
+
+const vsModal = document.getElementById('vsModal');
+const openVsModalBtn = document.getElementById('openVsModalBtn');
+const closeVsModalBtn = document.getElementById('closeVsModalBtn');
+const playerSearchInput = document.getElementById('playerSearchInput');
+const playersList = document.getElementById('playersList');
+const currentUsernameLabel = document.getElementById('currentUsernameLabel');
+
+const incomingInviteModal = document.getElementById('incomingInviteModal');
+const inviteSenderName = document.getElementById('inviteSenderName');
+const acceptInviteBtn = document.getElementById('acceptInviteBtn');
+const declineInviteBtn = document.getElementById('declineInviteBtn');
+
+const vsArenaModal = document.getElementById('vsArenaModal');
+const arenaTargetLabel = document.getElementById('arenaTargetLabel');
+const arenaCountdownOverlay = document.getElementById('arenaCountdownOverlay');
+const arenaCountdownNumber = document.getElementById('arenaCountdownNumber');
+const arenaP1Name = document.getElementById('arenaP1Name');
+const arenaP2Name = document.getElementById('arenaP2Name');
+const arenaP1Time = document.getElementById('arenaP1Time');
+const arenaP2Time = document.getElementById('arenaP2Time');
+const arenaP1Diff = document.getElementById('arenaP1Diff');
+const arenaP2Diff = document.getElementById('arenaP2Diff');
+const arenaActionBtn = document.getElementById('arenaActionBtn');
+const arenaWinnerBanner = document.getElementById('arenaWinnerBanner');
+const arenaWinnerTitle = document.getElementById('arenaWinnerTitle');
+const arenaWinnerDesc = document.getElementById('arenaWinnerDesc');
+const arenaRematchBtn = document.getElementById('arenaRematchBtn');
+const arenaExitBtn = document.getElementById('arenaExitBtn');
+
+let activePlayersMap = new Map();
+let currentInvite = null;
+let currentMatch = null;
+let isArenaActive = false;
+let arenaStartTime = 0;
+let arenaElapsedTime = 0;
+let arenaRafId = null;
+let arenaStopped = false;
+
+// Hybrid Realtime Channel: BroadcastChannel (local) + Global MQTT Cloud WebSocket Broker
+const vsChannel = new BroadcastChannel('chrono_pulse_vs_channel');
+const MQTT_TOPIC = 'chronopulse/global/vs_matchmaking/v1';
+let mqttClient = null;
+
+try {
+  if (typeof mqtt !== 'undefined') {
+    // Public Global WebSocket Broker for Worldwide Cross-Device & Cross-Network multiplayer
+    mqttClient = mqtt.connect('wss://broker.emqx.io:8084/mqtt', {
+      clientId: 'cp_' + myClientId,
+      keepalive: 30,
+      clean: true
+    });
+
+    mqttClient.on('connect', () => {
+      console.log('Connected to Global Realtime Cloud Broker');
+      mqttClient.subscribe(MQTT_TOPIC);
+      if (currentUsername) {
+        broadcast({ type: 'PING_PRESENCE', username: currentUsername });
+      }
+    });
+
+    mqttClient.on('message', (topic, message) => {
+      try {
+        const data = JSON.parse(message.toString());
+        handleRealtimeMessage(data);
+      } catch (e) {}
+    });
+  }
+} catch (e) {
+  console.warn('MQTT init notice:', e);
+}
+
+function broadcast(msg) {
+  const payload = { ...msg, senderId: myClientId, timestamp: Date.now() };
+  
+  // 1. Broadcast locally across tabs
+  try {
+    vsChannel.postMessage(payload);
+    localStorage.setItem('chrono_realtime_event', JSON.stringify({ ...payload, _rand: Math.random() }));
+  } catch (e) {}
+
+  // 2. Broadcast globally over the internet to other computers & phones
+  if (mqttClient && mqttClient.connected) {
+    try {
+      mqttClient.publish(MQTT_TOPIC, JSON.stringify(payload));
+    } catch (e) {}
+  }
+}
+
+function handleRealtimeMessage(data) {
+  if (!data || data.senderId === myClientId) return;
+
+  switch (data.type) {
+    case 'PING_PRESENCE':
+      if (data.username && data.username.toLowerCase() !== currentUsername.toLowerCase()) {
+        activePlayersMap.set(data.username, {
+          id: data.senderId,
+          username: data.username,
+          lastSeen: Date.now()
+        });
+        renderPlayersList();
+      }
+      break;
+
+    case 'INVITE_SEND':
+      if (currentUsername && data.targetUser.toLowerCase() === currentUsername.toLowerCase()) {
+        currentInvite = data;
+        inviteSenderName.textContent = data.fromUsername;
+        incomingInviteModal.classList.remove('hidden');
+        sounds.playChallengeInvite();
+        lucide.createIcons();
+      }
+      break;
+
+    case 'INVITE_DECLINED':
+      if (data.toUser && data.toUser.toLowerCase() === currentUsername.toLowerCase()) {
+        alert(`❌ ${data.fromUsername} davetinizi reddetti.`);
+        renderPlayersList();
+      }
+      break;
+
+    case 'INVITE_ACCEPTED':
+      if (data.toUser && data.toUser.toLowerCase() === currentUsername.toLowerCase()) {
+        vsModal.classList.add('hidden');
+        launchArenaMatch(data.matchId, currentUsername, data.fromUsername, data.targetTime);
+      }
+      break;
+
+    case 'ARENA_STOP':
+      if (currentMatch && currentMatch.matchId === data.matchId) {
+        currentMatch.p2Result = data.result;
+        arenaP2Time.textContent = data.result.formatted;
+        arenaP2Diff.textContent = `Fark: ${data.result.diffText}`;
+        checkArenaOutcome();
+      }
+      break;
+
+    case 'ARENA_REMATCH':
+      if (currentMatch && currentMatch.matchId === data.matchId) {
+        launchArenaMatch(data.newMatchId, currentMatch.p1, currentMatch.p2, data.targetTime);
+      }
+      break;
+  }
+}
+
+vsChannel.onmessage = (e) => handleRealtimeMessage(e.data);
+
+window.addEventListener('storage', (e) => {
+  if (e.key === 'chrono_realtime_event' && e.newValue) {
+    try {
+      handleRealtimeMessage(JSON.parse(e.newValue));
+    } catch (err) {}
+  }
+});
+
+setInterval(() => {
+  if (currentUsername) {
+    broadcast({ type: 'PING_PRESENCE', username: currentUsername });
+  }
+  const now = Date.now();
+  for (let [uname, p] of activePlayersMap.entries()) {
+    if (now - p.lastSeen > 8000) {
+      activePlayersMap.delete(uname);
+    }
+  }
+  renderPlayersList();
+}, 2500);
+
+function updateHeaderUser() {
+  if (currentUsername) {
+    headerUsername.textContent = currentUsername;
+    currentUsernameLabel.textContent = currentUsername;
+  } else {
+    headerUsername.textContent = 'Giriş Yap';
+    currentUsernameLabel.textContent = '--';
+  }
+}
+
+userProfileBtn.addEventListener('click', () => {
+  usernameInput.value = currentUsername;
+  loginModal.classList.remove('hidden');
+});
+
+loginForm.addEventListener('submit', (e) => {
+  e.preventDefault();
+  const uname = usernameInput.value.trim();
+  if (uname) {
+    currentUsername = uname;
+    localStorage.setItem('chrono_username', currentUsername);
+    updateHeaderUser();
+    loginModal.classList.add('hidden');
+    broadcast({ type: 'PING_PRESENCE', username: currentUsername });
+    sounds.playBeep(660, 'sine', 0.1, 0.2);
+  }
+});
+
+if (!currentUsername) {
+  setTimeout(() => {
+    loginModal.classList.remove('hidden');
+  }, 600);
+} else {
+  updateHeaderUser();
+  broadcast({ type: 'PING_PRESENCE', username: currentUsername });
+}
+
+openVsModalBtn.addEventListener('click', () => {
+  if (!currentUsername) {
+    loginModal.classList.remove('hidden');
+    return;
+  }
+  vsModal.classList.remove('hidden');
+  broadcast({ type: 'PING_PRESENCE', username: currentUsername });
+  renderPlayersList();
+});
+
+closeVsModalBtn.addEventListener('click', () => {
+  vsModal.classList.add('hidden');
+});
+
+function renderPlayersList() {
+  if (!playersList) return;
+  const filter = (playerSearchInput.value || '').toLowerCase();
+  playersList.innerHTML = '';
+
+  let count = 0;
+  for (let [uname, player] of activePlayersMap.entries()) {
+    if (uname.toLowerCase() === currentUsername.toLowerCase()) continue;
+    if (filter && !uname.toLowerCase().includes(filter)) continue;
+
+    count++;
+    const item = document.createElement('div');
+    item.className = 'flex items-center justify-between p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 hover:border-purple-500/50 transition-all';
+    item.innerHTML = `
+      <div class="flex items-center space-x-3">
+        <div class="w-9 h-9 rounded-xl bg-purple-500/20 border border-purple-500/40 flex items-center justify-center font-black text-purple-400 font-mono text-sm">
+          ${uname.substring(0, 2).toUpperCase()}
+        </div>
+        <div>
+          <span class="font-bold text-white font-mono text-sm block">${uname}</span>
+          <span class="text-[10px] text-emerald-400 font-semibold flex items-center space-x-1">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span>Çevrimiçi (Dünya Geneli)</span>
+          </span>
+        </div>
+      </div>
+      <button class="invite-btn px-4 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:brightness-110 font-bold text-xs text-white shadow-md shadow-purple-500/20 transition-all active:scale-95 flex items-center space-x-1.5" data-user="${uname}">
+        <i data-lucide="swords" class="w-3.5 h-3.5"></i>
+        <span>DAVET ET</span>
+      </button>
+    `;
+    playersList.appendChild(item);
+  }
+
+  if (count === 0) {
+    playersList.innerHTML = `
+      <div class="text-center py-8 text-slate-500 text-xs">
+        <i data-lucide="globe" class="w-8 h-8 mx-auto mb-2 opacity-40 text-purple-400"></i>
+        <span>Şu an aktif başka oyuncu aranıyor... Başka bir cihazdan veya sekmeden siteye girildiğinde anında burada görünecektir!</span>
+      </div>
+    `;
+  }
+
+  document.querySelectorAll('.invite-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const targetUser = btn.getAttribute('data-user');
+      btn.disabled = true;
+      btn.innerHTML = '<span>Gönderildi...</span>';
+      
+      const randomTarget = generateRandomVsTarget();
+
+      broadcast({
+        type: 'INVITE_SEND',
+        fromUsername: currentUsername,
+        targetUser: targetUser,
+        targetTime: randomTarget
+      });
+      sounds.playBeep(520, 'sine', 0.1, 0.2);
+    });
+  });
+
+  lucide.createIcons();
+}
+
+playerSearchInput.addEventListener('input', renderPlayersList);
+
+acceptInviteBtn.addEventListener('click', () => {
+  if (!currentInvite) return;
+  incomingInviteModal.classList.add('hidden');
+
+  const matchId = 'match_' + Date.now();
+  broadcast({
+    type: 'INVITE_ACCEPTED',
+    fromUsername: currentUsername,
+    toUser: currentInvite.fromUsername,
+    targetTime: currentInvite.targetTime,
+    matchId: matchId
+  });
+
+  launchArenaMatch(matchId, currentUsername, currentInvite.fromUsername, currentInvite.targetTime);
+  currentInvite = null;
+});
+
+declineInviteBtn.addEventListener('click', () => {
+  if (!currentInvite) return;
+  incomingInviteModal.classList.add('hidden');
+
+  broadcast({
+    type: 'INVITE_DECLINED',
+    fromUsername: currentUsername,
+    toUser: currentInvite.fromUsername
+  });
+  currentInvite = null;
+  sounds.playBeep(220, 'sine', 0.1, 0.2);
+});
+
+function launchArenaMatch(matchId, p1, p2, targetTime) {
+  isArenaActive = true;
+  arenaStopped = false;
+  arenaWinnerBanner.classList.add('hidden');
+
+  currentMatch = {
+    matchId: matchId,
+    p1: p1,
+    p2: p2,
+    targetTime: targetTime,
+    p1Result: null,
+    p2Result: null
+  };
+
+  let tFormatted = '';
+  if (targetTime.unit === 'second') {
+    const tm = String(Math.floor(targetTime.main / 60)).padStart(2, '0');
+    const ts = String(targetTime.main % 60).padStart(2, '0');
+    const tms = String(targetTime.sub % 100).padStart(2, '0');
+    tFormatted = `${tm}.${ts}.${tms} (${targetTime.main}.${tms} Saniye)`;
+  } else if (targetTime.unit === 'millisecond') {
+    tFormatted = `00.00.${String(targetTime.main % 100).padStart(2, '0')} (${targetTime.main} Milisaniye)`;
+  }
+  arenaTargetLabel.textContent = tFormatted;
+
+  arenaP1Name.textContent = p1;
+  arenaP2Name.textContent = p2;
+  arenaP1Time.textContent = '00.00.00';
+  arenaP2Time.textContent = '00.00.00';
+  arenaP1Diff.textContent = 'Hazırlanıyor...';
+  arenaP2Diff.textContent = 'Hazırlanıyor...';
+  arenaActionBtn.disabled = true;
+
+  vsArenaModal.classList.remove('hidden');
+
+  arenaCountdownOverlay.classList.remove('hidden');
+  let count = 3;
+  arenaCountdownNumber.textContent = count;
+  arenaCountdownNumber.className = 'text-8xl sm:text-9xl font-black text-amber-400 animate-bounce';
+  sounds.playBeep(440, 'triangle', 0.15, 0.3);
+
+  const cInterval = setInterval(() => {
+    count--;
+    if (count > 0) {
+      arenaCountdownNumber.textContent = count;
+      sounds.playBeep(440, 'triangle', 0.15, 0.3);
+    } else if (count === 0) {
+      arenaCountdownNumber.textContent = 'BAŞLA!';
+      arenaCountdownNumber.className = 'text-7xl sm:text-8xl font-black text-brand-glow animate-pulse';
+      sounds.playStart();
+    } else {
+      clearInterval(cInterval);
+      arenaCountdownOverlay.classList.add('hidden');
+      startArenaStopwatch();
+    }
+  }, 1000);
+}
+
+function updateArenaTimer() {
+  arenaElapsedTime = performance.now() - arenaStartTime;
+  const { formatted } = get2DigitTime(arenaElapsedTime);
+  if (!arenaStopped) {
+    arenaP1Time.textContent = formatted;
+  }
+  arenaRafId = requestAnimationFrame(updateArenaTimer);
+}
+
+function startArenaStopwatch() {
+  arenaActionBtn.disabled = false;
+  arenaStartTime = performance.now();
+  arenaRafId = requestAnimationFrame(updateArenaTimer);
+}
+
+function handleArenaAction() {
+  if (arenaStopped || !isArenaActive) return;
+  arenaStopped = true;
+  arenaActionBtn.disabled = true;
+  sounds.playStop();
+
+  const finalElapsed = performance.now() - arenaStartTime;
+  const { m, s, ms2, formatted } = get2DigitTime(finalElapsed);
+  arenaP1Time.textContent = formatted;
+
+  const target = currentMatch.targetTime;
+  let diff = 0;
+  let diffText = '';
+
+  if (target.unit === 'second') {
+    const actualUnits = (m * 60 + s) * 100 + ms2;
+    const targetUnits = target.main * 100 + (target.sub % 100);
+    const rawDiff = actualUnits - targetUnits;
+    diff = Math.abs(rawDiff);
+    const sign = rawDiff >= 0 ? '+' : '-';
+    diffText = `${sign}${diff} ms`;
+  } else if (target.unit === 'millisecond') {
+    const actualUnits = (m * 60 + s) * 100 + ms2;
+    const targetUnits = target.main;
+    const rawDiff = actualUnits - targetUnits;
+    diff = Math.abs(rawDiff);
+    const sign = rawDiff >= 0 ? '+' : '-';
+    diffText = `${sign}${diff} ms`;
+  }
+
+  arenaP1Diff.textContent = `Fark: ${diffText}`;
+
+  currentMatch.p1Result = {
+    elapsed: finalElapsed,
+    formatted: formatted,
+    diff: diff,
+    diffText: diffText
+  };
+
+  broadcast({
+    type: 'ARENA_STOP',
+    matchId: currentMatch.matchId,
+    result: currentMatch.p1Result
+  });
+
+  checkArenaOutcome();
+}
+
+arenaActionBtn.addEventListener('click', handleArenaAction);
+
+function checkArenaOutcome() {
+  if (!currentMatch || !currentMatch.p1Result || !currentMatch.p2Result) return;
+
+  cancelAnimationFrame(arenaRafId);
+  const p1Diff = currentMatch.p1Result.diff;
+  const p2Diff = currentMatch.p2Result.diff;
+
+  arenaWinnerBanner.classList.remove('hidden');
+
+  if (p1Diff < p2Diff) {
+    arenaWinnerTitle.textContent = `🏆 ${currentMatch.p1} KAZANDI!`;
+    arenaWinnerTitle.className = 'text-2xl sm:text-3xl font-black text-yellow-400 drop-shadow-lg';
+    arenaWinnerDesc.textContent = `Tebrikler! Hedefe ${p1Diff} ms farkla daha çok yaklaştınız (Rakip: ${p2Diff} ms).`;
+    sounds.playMegaVictory();
+    triggerMegaConfetti();
+  } else if (p2Diff < p1Diff) {
+    arenaWinnerTitle.textContent = `💀 ${currentMatch.p2} KAZANDI!`;
+    arenaWinnerTitle.className = 'text-2xl sm:text-3xl font-black text-rose-400 drop-shadow-lg';
+    arenaWinnerDesc.textContent = `Rakip ${p2Diff} ms farkla daha hızlı davrandı (Siz: ${p1Diff} ms).`;
+    sounds.playBeep(220, 'sawtooth', 0.3, 0.2);
+  } else {
+    arenaWinnerTitle.textContent = `🤝 BERABERE!`;
+    arenaWinnerTitle.className = 'text-2xl sm:text-3xl font-black text-cyber-neonBlue drop-shadow-lg';
+    arenaWinnerDesc.textContent = `İki oyuncu da tam olarak ${p1Diff} ms fark ile durdurdu!`;
+    sounds.playGood();
+  }
+}
+
+arenaExitBtn.addEventListener('click', () => {
+  cancelAnimationFrame(arenaRafId);
+  isArenaActive = false;
+  vsArenaModal.classList.add('hidden');
+});
+
+arenaRematchBtn.addEventListener('click', () => {
+  const newMatchId = 'match_' + Date.now();
+  const newRandomTarget = generateRandomVsTarget();
+  broadcast({
+    type: 'ARENA_REMATCH',
+    matchId: currentMatch.matchId,
+    newMatchId: newMatchId,
+    targetTime: newRandomTarget
+  });
+  launchArenaMatch(newMatchId, currentMatch.p1, currentMatch.p2, newRandomTarget);
+});
