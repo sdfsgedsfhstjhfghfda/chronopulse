@@ -1,6 +1,6 @@
 ﻿/**
  * ChronoPulse - Professional Precision Stopwatch, Timer & Live Turkey Clock
- * Strict 2-digit (00.00.00) Engine | "BETTER THAN TİMİ??" 0 ms Milestone
+ * Strict 2-digit (00.00.00) Engine with Sub-Target Precision (e.g. 5.32s / 5.32h)
  */
 
 // Initialize Lucide Icons
@@ -58,7 +58,6 @@ class SoundEngine {
 
   playMegaVictory() {
     if (!this.enabled) return;
-    // Epic fanfare for 0 ms PERFECT hit!
     const notes = [523.25, 659.25, 783.99, 1046.50, 1318.51];
     notes.forEach((freq, idx) => {
       setTimeout(() => {
@@ -153,7 +152,7 @@ navTabs.forEach(tab => {
 });
 
 /* ==========================================================================
-   3. KRONOMETRE & HEDEF MODU (STRICT 2-DIGIT 00.00.00 ENGINE)
+   3. KRONOMETRE & HEDEF MODU (DETAILED TARGET PRECISION)
    ========================================================================== */
 let swIsRunning = false;
 let swStartTime = 0;
@@ -172,7 +171,9 @@ const btnText = document.getElementById('btnText');
 const lapBtn = document.getElementById('lapBtn');
 const resetBtn = document.getElementById('resetBtn');
 
-const targetValueInput = document.getElementById('targetValue');
+const targetMainValue = document.getElementById('targetMainValue');
+const targetDotSeparator = document.getElementById('targetDotSeparator');
+const targetSubValue = document.getElementById('targetSubValue');
 const unitBtns = document.querySelectorAll('.unit-btn');
 const activeTargetLabel = document.getElementById('activeTargetLabel');
 const chronoGlow = document.getElementById('chronoGlow');
@@ -192,23 +193,45 @@ const clearHistoryBtn = document.getElementById('clearHistoryBtn');
 
 let currentUnit = 'second'; // 'second', 'millisecond', 'hour'
 
-// Update target label
+// Update target layout & label
 function updateTargetLabel() {
-  const val = Math.max(1, parseInt(targetValueInput.value) || 1);
-  targetValueInput.value = val;
+  const mainVal = Math.max(0, parseInt(targetMainValue.value) || 0);
+  const subVal = Math.max(0, parseInt(targetSubValue.value) || 0);
+  
+  targetMainValue.value = mainVal;
+  targetSubValue.value = String(subVal).padStart(2, '0');
+
   let formattedTarget = '';
 
   if (currentUnit === 'second') {
-    const m = String(Math.floor(val / 60)).padStart(2, '0');
-    const s = String(val % 60).padStart(2, '0');
-    formattedTarget = `${m}.${s}.00 (${val} Saniye)`;
+    targetDotSeparator.classList.remove('hidden');
+    targetSubValue.classList.remove('hidden');
+    targetSubValue.max = '99';
+    targetSubValue.placeholder = 'ms';
+
+    const m = String(Math.floor(mainVal / 60)).padStart(2, '0');
+    const s = String(mainVal % 60).padStart(2, '0');
+    const ms = String(subVal % 100).padStart(2, '0');
+    formattedTarget = `${m}.${s}.${ms} (${mainVal}.${ms} Saniye)`;
+
   } else if (currentUnit === 'millisecond') {
-    const s = String(Math.floor(val / 100)).padStart(2, '0');
-    const ms = String(val % 100).padStart(2, '0');
-    formattedTarget = `00.${s}.${ms} (${val} Milisaniye)`;
+    // Millisecond doesn't need sub-dot
+    targetDotSeparator.classList.add('hidden');
+    targetSubValue.classList.add('hidden');
+
+    const s = String(Math.floor(mainVal / 100)).padStart(2, '0');
+    const ms = String(mainVal % 100).padStart(2, '0');
+    formattedTarget = `00.${s}.${ms} (${mainVal} Milisaniye)`;
+
   } else if (currentUnit === 'hour') {
-    const h = String(val).padStart(2, '0');
-    formattedTarget = `${h}.00.00 (${val} Saat)`;
+    targetDotSeparator.classList.remove('hidden');
+    targetSubValue.classList.remove('hidden');
+    targetSubValue.max = '59';
+    targetSubValue.placeholder = 'dk';
+
+    const h = String(mainVal).padStart(2, '0');
+    const m = String(subVal % 60).padStart(2, '0');
+    formattedTarget = `${h}.${m}.00 (${mainVal}.${m} Saat)`;
   }
 
   activeTargetLabel.textContent = formattedTarget;
@@ -228,7 +251,8 @@ unitBtns.forEach(btn => {
   });
 });
 
-targetValueInput.addEventListener('input', updateTargetLabel);
+targetMainValue.addEventListener('input', updateTargetLabel);
+targetSubValue.addEventListener('input', updateTargetLabel);
 
 /**
  * Convert ms into strictly 2-digit integers:
@@ -293,7 +317,8 @@ function startStopwatch() {
  * > 15 difference -> "THİS REALLY BAD"
  */
 function evaluateResult(elapsedMs) {
-  const targetVal = parseInt(targetValueInput.value) || 1;
+  const mainVal = Math.max(0, parseInt(targetMainValue.value) || 0);
+  const subVal = Math.max(0, parseInt(targetSubValue.value) || 0);
   const { m, s, ms2, formatted } = get2DigitTime(elapsedMs);
 
   let targetFormatted = '';
@@ -309,41 +334,49 @@ function evaluateResult(elapsedMs) {
   let icon = '';
 
   if (currentUnit === 'second') {
+    // Target is: mainVal seconds + subVal ms (0-99)
+    // Target in units = mainVal * 100 + subVal
     const actualUnits = (m * 60 + s) * 100 + ms2;
-    const targetUnits = targetVal * 100;
+    const targetUnits = mainVal * 100 + (subVal % 100);
     const rawDiff = actualUnits - targetUnits;
     diff = Math.abs(rawDiff);
     unitSuffix = 'ms';
 
-    const tm = String(Math.floor(targetVal / 60)).padStart(2, '0');
-    const ts = String(targetVal % 60).padStart(2, '0');
-    targetFormatted = `${tm}.${ts}.00`;
+    const tm = String(Math.floor(mainVal / 60)).padStart(2, '0');
+    const ts = String(mainVal % 60).padStart(2, '0');
+    const tms = String(subVal % 100).padStart(2, '0');
+    targetFormatted = `${tm}.${ts}.${tms}`;
 
     const sign = rawDiff >= 0 ? '+' : '-';
     diffText = `${sign}${diff} ms`;
 
   } else if (currentUnit === 'millisecond') {
     const actualUnits = (m * 60 + s) * 100 + ms2;
-    const targetUnits = targetVal;
+    const targetUnits = mainVal;
     const rawDiff = actualUnits - targetUnits;
     diff = Math.abs(rawDiff);
     unitSuffix = 'ms';
 
-    const ts = String(Math.floor(targetVal / 100)).padStart(2, '0');
-    const tms = String(targetVal % 100).padStart(2, '0');
+    const ts = String(Math.floor(mainVal / 100)).padStart(2, '0');
+    const tms = String(mainVal % 100).padStart(2, '0');
     targetFormatted = `00.${ts}.${tms}`;
 
     const sign = rawDiff >= 0 ? '+' : '-';
     diffText = `${sign}${diff} ms`;
 
   } else if (currentUnit === 'hour') {
+    // Target is: mainVal hours + subVal minutes (0-59)
+    // Target in seconds = mainVal * 3600 + subVal * 60
     const actualSeconds = m * 60 + s;
-    const targetSeconds = targetVal * 3600;
+    const targetSeconds = mainVal * 3600 + (subVal % 60) * 60;
     const rawDiff = actualSeconds - targetSeconds;
     diff = Math.abs(rawDiff);
     unitSuffix = 'sn';
 
-    targetFormatted = `${String(targetVal).padStart(2, '0')}.00.00`;
+    const th = String(mainVal).padStart(2, '0');
+    const tm = String(subVal % 60).padStart(2, '0');
+    targetFormatted = `${th}.${tm}.00`;
+
     const sign = rawDiff >= 0 ? '+' : '-';
     diffText = `${sign}${diff} sn`;
   }
@@ -517,7 +550,6 @@ function triggerConfetti() {
 
 function triggerMegaConfetti() {
   if (typeof confetti === 'function') {
-    // 3 rounds of huge multi-color confetti
     const count = 200;
     const defaults = { origin: { y: 0.7 } };
 
@@ -777,4 +809,6 @@ function updateTurkeyClock() {
 setInterval(updateTurkeyClock, 1000);
 updateTurkeyClock();
 
+// Initial call
+updateTargetLabel();
 lucide.createIcons();
