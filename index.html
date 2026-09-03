@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>ChronoPulse - Hassas Kronometre, Zamanlayıcı & Canlı Saat</title>
+  <title>ChronoPulse - YOU BETTER THAN TİMİ? | Hassas Kronometre & Zamanlayıcı</title>
   
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -69,7 +69,7 @@
         </div>
         <div>
           <span class="text-xl sm:text-2xl font-black tracking-wider bg-gradient-to-r from-white via-slate-200 to-brand-glow bg-clip-text text-transparent">CHRONO<span class="text-brand-500">PULSE</span></span>
-          <span class="hidden sm:inline-block text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 ml-2 bg-brand-500/10 text-brand-400 border border-brand-500/30 rounded-full">00.00.00 Format</span>
+          <span class="hidden sm:inline-block text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 ml-2 bg-brand-500/10 text-brand-400 border border-brand-500/30 rounded-full">Public 00.00.00</span>
         </div>
       </div>
 
@@ -104,7 +104,24 @@
   </header>
 
   <!-- Main Container -->
-  <main class="relative z-10 flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 py-6 sm:py-10 flex flex-col justify-center">
+  <main class="relative z-10 flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 py-6 sm:py-8 flex flex-col justify-center space-y-6">
+
+    <!-- 🔥 PROMINENT "YOU BETTER THAN TİMİ?" BANNER 🔥 -->
+    <div class="relative overflow-hidden rounded-2xl bg-gradient-to-r from-amber-500/20 via-brand-500/20 to-purple-600/20 border-2 border-amber-400/40 p-4 sm:p-5 shadow-2xl backdrop-blur-xl text-center group select-none">
+      <div class="absolute -right-10 -top-10 w-36 h-36 bg-amber-400/10 rounded-full blur-2xl"></div>
+      <div class="flex flex-col sm:flex-row items-center justify-center space-y-2 sm:space-y-0 sm:space-x-4">
+        <span class="text-3xl sm:text-4xl animate-bounce">👑</span>
+        <div>
+          <h1 class="text-2xl sm:text-4xl md:text-5xl font-black tracking-wider uppercase bg-gradient-to-r from-amber-300 via-yellow-400 to-brand-glow bg-clip-text text-transparent drop-shadow-md">
+            YOU BETTER THAN TİMİ?
+          </h1>
+          <p class="text-xs sm:text-sm text-slate-300 font-medium mt-1">
+            Hedefi <span class="text-amber-300 font-bold">5 milisaniyeden</span> az farkla durdur ve <strong class="text-yellow-400 font-black">"TİMİ"</strong> unvanını kap!
+          </p>
+        </div>
+        <span class="text-3xl sm:text-4xl animate-bounce hidden sm:inline-block">⚡</span>
+      </div>
+    </div>
 
     <!-- ==================== TAB 1: KRONOMETRE & HEDEF MODU ==================== -->
     <section id="tab-stopwatch" class="tab-content block space-y-6 animate-fadeIn">
@@ -119,7 +136,7 @@
               </span>
               <h2 class="text-base sm:text-lg font-bold text-white">Hedefli Zamanlama & Tepki Meydan Okuması</h2>
             </div>
-            <p class="text-xs sm:text-sm text-slate-400 mt-1">Hedef sayınızı ve biriminizi seçin, butona basıp tam hedefte durdurmaya çalışın!</p>
+            <p class="text-xs sm:text-sm text-slate-400 mt-1">Hedef sayınızı ve biriminizi belirleyin, butona basarak tam hedefte durdurun!</p>
           </div>
 
           <!-- Target Controls -->
@@ -143,7 +160,7 @@
         <div class="mt-3 flex items-center justify-between text-xs text-slate-400">
           <div class="flex items-center space-x-1.5">
             <span class="w-2 h-2 rounded-full bg-brand-500 animate-ping"></span>
-            <span>Aktif Hedef: <strong id="activeTargetLabel" class="text-brand-glow font-mono">5.00 Saniye</strong></span>
+            <span>Aktif Hedef: <strong id="activeTargetLabel" class="text-brand-glow font-mono">00.05.00 (5 Saniye)</strong></span>
           </div>
           <div class="hidden sm:flex items-center space-x-3 text-slate-400">
             <span>Klavye: <kbd class="px-2 py-0.5 bg-slate-800 border border-slate-700 rounded text-[11px] font-mono text-slate-300">Space</kbd></span>
@@ -177,10 +194,10 @@
 
             <span class="text-5xl sm:text-8xl md:text-9xl font-black text-brand-500 mx-2 sm:mx-4 -mt-4 sm:-mt-6">.</span>
 
-            <!-- Block 3: Salise (Milisaniye / 10) -->
+            <!-- Block 3: Milisaniye / Salise -->
             <div class="flex flex-col items-center">
               <span id="swPart3" class="text-5xl sm:text-8xl md:text-9xl font-black text-brand-glow glow-text">00</span>
-              <span class="text-[10px] sm:text-xs uppercase tracking-widest text-slate-500 font-bold mt-1">SALİSE</span>
+              <span class="text-[10px] sm:text-xs uppercase tracking-widest text-slate-500 font-bold mt-1">MİLİSANİYE</span>
             </div>
           </div>
         </div>
@@ -232,11 +249,11 @@
             </div>
             <div class="text-center px-3 border-r border-slate-800">
               <span class="block text-[11px] text-slate-400 uppercase font-semibold">Durdurulan</span>
-              <span id="resActual" class="font-mono font-bold text-base sm:text-lg text-white">00.05.00</span>
+              <span id="resActual" class="font-mono font-bold text-base sm:text-lg text-white">00.05.05</span>
             </div>
             <div class="text-center px-3">
               <span class="block text-[11px] text-slate-400 uppercase font-semibold">Fark</span>
-              <span id="resDiff" class="font-mono font-black text-base sm:text-lg text-brand-glow">+4 ms</span>
+              <span id="resDiff" class="font-mono font-black text-base sm:text-lg text-brand-glow">+5 ms</span>
             </div>
           </div>
         </div>

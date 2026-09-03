@@ -1,6 +1,6 @@
 ﻿/**
  * ChronoPulse - Professional Precision Stopwatch, Timer & Live Turkey Clock
- * Format: 00.00.00
+ * Format: 00.00.00 | Challenge: YOU BETTER THAN TİMİ?
  */
 
 // Initialize Lucide Icons
@@ -142,7 +142,7 @@ navTabs.forEach(tab => {
 });
 
 /* ==========================================================================
-   3. KRONOMETRE & HEDEF MODU (00.00.00 FORMAT)
+   3. KRONOMETRE & HEDEF MODU (00.00.00 FORMAT & CALIBRATED TIMING)
    ========================================================================== */
 let swIsRunning = false;
 let swStartTime = 0;
@@ -185,11 +185,22 @@ let currentUnit = 'second'; // 'second', 'millisecond', 'hour'
 function updateTargetLabel() {
   const val = Math.max(1, parseInt(targetValueInput.value) || 1);
   targetValueInput.value = val;
-  let unitText = 'Saniye';
-  if (currentUnit === 'millisecond') unitText = 'Milisaniye';
-  if (currentUnit === 'hour') unitText = 'Saat';
+  let formattedTarget = '';
 
-  activeTargetLabel.textContent = `${val} ${unitText}`;
+  if (currentUnit === 'second') {
+    const m = String(Math.floor(val / 60)).padStart(2, '0');
+    const s = String(val % 60).padStart(2, '0');
+    formattedTarget = `${m}.${s}.00 (${val} Saniye)`;
+  } else if (currentUnit === 'millisecond') {
+    const s = String(Math.floor(val / 100)).padStart(2, '0');
+    const ms = String(val % 100).padStart(2, '0');
+    formattedTarget = `00.${s}.${ms} (${val} Milisaniye)`;
+  } else if (currentUnit === 'hour') {
+    const h = String(val).padStart(2, '0');
+    formattedTarget = `${h}.00.00 (${val} Saat)`;
+  }
+
+  activeTargetLabel.textContent = formattedTarget;
 }
 
 unitBtns.forEach(btn => {
@@ -208,26 +219,29 @@ unitBtns.forEach(btn => {
 
 targetValueInput.addEventListener('input', updateTargetLabel);
 
-// Format time into 00.00.00 (Dakika . Saniye . Salise/Milisaniye 2 hane)
-function formatTime00(ms) {
+// Format raw ms into components (Dakika . Saniye . Milisaniye 00-99)
+function getTimeUnits(ms) {
   const totalSeconds = Math.floor(ms / 1000);
   const minutes = Math.floor(totalSeconds / 60) % 60;
   const seconds = totalSeconds % 60;
-  const centiseconds = Math.floor((ms % 1000) / 10); // 0-99 salise
+  const milliUnits = Math.floor((ms % 1000) / 10); // 00-99
 
   return {
-    p1: String(minutes).padStart(2, '0'),
-    p2: String(seconds).padStart(2, '0'),
-    p3: String(centiseconds).padStart(2, '0'),
-    formatted: `${String(minutes).padStart(2, '0')}.${String(seconds).padStart(2, '0')}.${String(centiseconds).padStart(2, '0')}`
+    m: minutes,
+    s: seconds,
+    msUnit: milliUnits,
+    strM: String(minutes).padStart(2, '0'),
+    strS: String(seconds).padStart(2, '0'),
+    strMs: String(milliUnits).padStart(2, '0'),
+    formatted: `${String(minutes).padStart(2, '0')}.${String(seconds).padStart(2, '0')}.${String(milliUnits).padStart(2, '0')}`
   };
 }
 
 function renderStopwatch(timeMs) {
-  const { p1, p2, p3 } = formatTime00(timeMs);
-  swPart1.textContent = p1;
-  swPart2.textContent = p2;
-  swPart3.textContent = p3;
+  const { strM, strS, strMs } = getTimeUnits(timeMs);
+  swPart1.textContent = strM;
+  swPart2.textContent = strS;
+  swPart3.textContent = strMs;
 }
 
 function updateStopwatch() {
@@ -258,11 +272,12 @@ function startStopwatch() {
 
 function evaluateResult(elapsedMs) {
   const targetVal = parseFloat(targetValueInput.value) || 1;
-  let targetMs = 0;
+  const { m, s, msUnit, formatted } = getTimeUnits(elapsedMs);
+
+  let targetFormatted = '';
+  let actualFormatted = formatted;
   let diff = 0;
   let diffText = '';
-  let targetDisplay = '';
-  let actualDisplay = formatTime00(elapsedMs).formatted;
   let rank = '';
   let title = '';
   let desc = '';
@@ -271,17 +286,25 @@ function evaluateResult(elapsedMs) {
   let icon = '';
 
   if (currentUnit === 'second') {
-    targetMs = targetVal * 1000;
-    diff = Math.abs(elapsedMs - targetMs); // in ms
-    targetDisplay = formatTime00(targetMs).formatted;
-    const sign = elapsedMs >= targetMs ? '+' : '-';
-    diffText = `${sign}${Math.round(diff)} ms`;
+    // Target in 00-99 units: targetVal * 100
+    // Actual in 00-99 units: (m * 60 + s) * 100 + msUnit
+    const actualUnits = (m * 60 + s) * 100 + msUnit;
+    const targetUnits = targetVal * 100;
+    const rawDiff = actualUnits - targetUnits;
+    diff = Math.abs(rawDiff);
 
-    // Exact required evaluation
+    const tm = String(Math.floor(targetVal / 60)).padStart(2, '0');
+    const ts = String(targetVal % 60).padStart(2, '0');
+    targetFormatted = `${tm}.${ts}.00`;
+
+    const sign = rawDiff >= 0 ? '+' : '-';
+    diffText = `${sign}${diff} ms`;
+
+    // Strict evaluation matching user's exact specification
     if (diff < 5) {
       rank = 'MÜKEMMEL';
       title = 'TİMİ';
-      desc = `Kusursuz zamanlama! Sadece ${diff.toFixed(1)} ms farkla durdurdunuz.`;
+      desc = `👑 İnanılmaz! Hedefle aranda sadece ${diff} ms fark var. YOU ARE THE REAL TİMİ!`;
       badgeClass = 'badge-timi';
       borderClass = 'border-timi';
       icon = '👑';
@@ -290,7 +313,7 @@ function evaluateResult(elapsedMs) {
     } else if (diff <= 10) {
       rank = 'HARİKA';
       title = 'REALLY GOOD';
-      desc = `Çok iyi refleks! Fark sadece ${diff.toFixed(1)} ms.`;
+      desc = `⚡ Harika refleks! Hedefe sadece ${diff} ms uzaktasın.`;
       badgeClass = 'badge-good';
       borderClass = 'border-good';
       icon = '⚡';
@@ -298,7 +321,7 @@ function evaluateResult(elapsedMs) {
     } else if (diff <= 15) {
       rank = 'ORTA';
       title = 'NORMAL';
-      desc = `İyi deneme! ${diff.toFixed(1)} ms fark ile hedefe yaklaştınız.`;
+      desc = `🎯 Fena değil! ${diff} ms fark ile normale yakınsın.`;
       badgeClass = 'badge-normal';
       borderClass = 'border-normal';
       icon = '🎯';
@@ -306,7 +329,7 @@ function evaluateResult(elapsedMs) {
     } else {
       rank = 'GELİŞTİRİLEBİLİR';
       title = 'THİS REALLY BAD';
-      desc = `Hedefin ${diff >= 1000 ? (diff/1000).toFixed(2) + ' sn' : diff.toFixed(0) + ' ms'} uzağındasınız. Tekrar deneyin!`;
+      desc = `⚠️ Hedefin ${diff} ms uzağındasın. TİMİ olmak için daha hızlı olmalısın!`;
       badgeClass = 'badge-bad';
       borderClass = 'border-bad';
       icon = '⚠️';
@@ -314,16 +337,22 @@ function evaluateResult(elapsedMs) {
     }
 
   } else if (currentUnit === 'millisecond') {
-    targetMs = targetVal;
-    diff = Math.abs(elapsedMs - targetMs);
-    targetDisplay = `${targetVal} ms`;
-    const sign = elapsedMs >= targetMs ? '+' : '-';
-    diffText = `${sign}${Math.round(diff)} ms`;
+    const actualUnits = (m * 60 + s) * 100 + msUnit;
+    const targetUnits = targetVal;
+    const rawDiff = actualUnits - targetUnits;
+    diff = Math.abs(rawDiff);
+
+    const ts = String(Math.floor(targetVal / 100)).padStart(2, '0');
+    const tms = String(targetVal % 100).padStart(2, '0');
+    targetFormatted = `00.${ts}.${tms}`;
+
+    const sign = rawDiff >= 0 ? '+' : '-';
+    diffText = `${sign}${diff} ms`;
 
     if (diff < 5) {
       rank = 'MÜKEMMEL';
       title = 'TİMİ';
-      desc = `İnanılmaz hassasiyet! Sadece ${diff.toFixed(1)} ms farkla durdurdunuz.`;
+      desc = `👑 Milisaniye ustası! Sadece ${diff} ms fark!`;
       badgeClass = 'badge-timi';
       borderClass = 'border-timi';
       icon = '👑';
@@ -332,7 +361,7 @@ function evaluateResult(elapsedMs) {
     } else if (diff <= 10) {
       rank = 'HARİKA';
       title = 'REALLY GOOD';
-      desc = `Fark ${diff.toFixed(1)} ms.`;
+      desc = `⚡ Fark sadece ${diff} ms.`;
       badgeClass = 'badge-good';
       borderClass = 'border-good';
       icon = '⚡';
@@ -340,7 +369,7 @@ function evaluateResult(elapsedMs) {
     } else if (diff <= 15) {
       rank = 'ORTA';
       title = 'NORMAL';
-      desc = `Fark ${diff.toFixed(1)} ms.`;
+      desc = `🎯 Fark ${diff} ms.`;
       badgeClass = 'badge-normal';
       borderClass = 'border-normal';
       icon = '🎯';
@@ -348,7 +377,7 @@ function evaluateResult(elapsedMs) {
     } else {
       rank = 'GELİŞTİRİLEBİLİR';
       title = 'THİS REALLY BAD';
-      desc = `Fark ${diff.toFixed(0)} ms.`;
+      desc = `⚠️ Fark: ${diff} ms. Tekrar dene!`;
       badgeClass = 'badge-bad';
       borderClass = 'border-bad';
       icon = '⚠️';
@@ -356,33 +385,37 @@ function evaluateResult(elapsedMs) {
     }
 
   } else if (currentUnit === 'hour') {
-    targetMs = targetVal * 3600 * 1000;
-    const diffSec = Math.abs((elapsedMs - targetMs) / 1000); // in seconds
-    targetDisplay = `${targetVal} saat`;
-    const sign = elapsedMs >= targetMs ? '+' : '-';
-    diffText = `${sign}${diffSec.toFixed(2)} sn`;
+    const actualSeconds = Math.floor(elapsedMs / 1000);
+    const targetSeconds = targetVal * 3600;
+    const rawDiff = actualSeconds - targetSeconds;
+    diff = Math.abs(rawDiff);
 
-    if (diffSec < 5) {
+    targetFormatted = `${String(targetVal).padStart(2, '0')}.00.00`;
+    const sign = rawDiff >= 0 ? '+' : '-';
+    diffText = `${sign}${diff} sn`;
+
+    // Hour evaluation in seconds: < 5s -> TİMİ, 5-10s -> REALLY GOOD, 10-15s -> NORMAL, >15s -> THİS REALLY BAD
+    if (diff < 5) {
       rank = 'MÜKEMMEL';
       title = 'TİMİ';
-      desc = `Saat bazında muazzam refleks! Fark ${diffSec.toFixed(2)} saniye.`;
+      desc = `👑 Saat bazında muazzam hassasiyet! Fark sadece ${diff} saniye.`;
       badgeClass = 'badge-timi';
       borderClass = 'border-timi';
       icon = '👑';
       sounds.playVictory();
       triggerConfetti();
-    } else if (diffSec <= 10) {
+    } else if (diff <= 10) {
       rank = 'HARİKA';
       title = 'REALLY GOOD';
-      desc = `Fark sadece ${diffSec.toFixed(2)} saniye.`;
+      desc = `⚡ Fark sadece ${diff} saniye.`;
       badgeClass = 'badge-good';
       borderClass = 'border-good';
       icon = '⚡';
       sounds.playGood();
-    } else if (diffSec <= 15) {
+    } else if (diff <= 15) {
       rank = 'ORTA';
       title = 'NORMAL';
-      desc = `Fark ${diffSec.toFixed(2)} saniye.`;
+      desc = `🎯 Fark: ${diff} saniye.`;
       badgeClass = 'badge-normal';
       borderClass = 'border-normal';
       icon = '🎯';
@@ -390,7 +423,7 @@ function evaluateResult(elapsedMs) {
     } else {
       rank = 'GELİŞTİRİLEBİLİR';
       title = 'THİS REALLY BAD';
-      desc = `Fark ${diffSec.toFixed(1)} saniye.`;
+      desc = `⚠️ Fark: ${diff} saniye.`;
       badgeClass = 'badge-bad';
       borderClass = 'border-bad';
       icon = '⚠️';
@@ -403,8 +436,8 @@ function evaluateResult(elapsedMs) {
   resultDesc.textContent = desc;
   rankBadge.textContent = rank;
   resultBadgeIcon.textContent = icon;
-  resTarget.textContent = targetDisplay;
-  resActual.textContent = actualDisplay;
+  resTarget.textContent = targetFormatted;
+  resActual.textContent = actualFormatted;
   resDiff.textContent = diffText;
 
   resultCard.className = `bg-cyber-card/95 border-2 rounded-2xl p-6 sm:p-8 shadow-2xl transition-all animate-bounceIn relative overflow-hidden ${borderClass}`;
@@ -412,7 +445,7 @@ function evaluateResult(elapsedMs) {
 
   resultCard.classList.remove('hidden');
 
-  addHistoryItem(title, targetDisplay, actualDisplay, diffText, badgeClass);
+  addHistoryItem(title, targetFormatted, actualFormatted, diffText, badgeClass);
 }
 
 function stopStopwatch() {
@@ -487,7 +520,7 @@ function addHistoryItem(title, target, actual, diff, badgeClass) {
 lapBtn.addEventListener('click', () => {
   if (!swIsRunning) return;
   const current = performance.now() - swStartTime;
-  const formatted = formatTime00(Math.floor(current)).formatted;
+  const formatted = getTimeUnits(Math.floor(current)).formatted;
   
   lapsContainer.classList.remove('hidden');
   const item = document.createElement('div');
@@ -579,7 +612,6 @@ function updateTimerDisplay() {
   const m = Math.floor((timerRemainingSeconds % 3600) / 60);
   const s = timerRemainingSeconds % 60;
 
-  // Formatted strictly as 00.00.00 (HH.MM.SS)
   timerDigits.textContent = `${String(h).padStart(2, '0')}.${String(m).padStart(2, '0')}.${String(s).padStart(2, '0')}`;
 
   if (timerTotalSeconds > 0) {
