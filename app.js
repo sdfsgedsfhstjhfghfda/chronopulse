@@ -1,6 +1,6 @@
 ﻿/**
  * ChronoPulse - Professional Precision Stopwatch, Timer & Live Turkey Clock
- * Format: 00.00.00 | Challenge: YOU BETTER THAN TİMİ?
+ * Strict 2-digit (00.00.00) Engine
  */
 
 // Initialize Lucide Icons
@@ -48,8 +48,8 @@ class SoundEngine {
   }
 
   playStart() {
-    this.playBeep(587.33, 'sine', 0.1, 0.2); // D5
-    setTimeout(() => this.playBeep(880, 'triangle', 0.15, 0.2), 60); // A5
+    this.playBeep(587.33, 'sine', 0.1, 0.2);
+    setTimeout(() => this.playBeep(880, 'triangle', 0.15, 0.2), 60);
   }
 
   playStop() {
@@ -142,7 +142,7 @@ navTabs.forEach(tab => {
 });
 
 /* ==========================================================================
-   3. KRONOMETRE & HEDEF MODU (00.00.00 FORMAT & CALIBRATED TIMING)
+   3. KRONOMETRE & HEDEF MODU (STRICT 2-DIGIT 00.00.00 ENGINE)
    ========================================================================== */
 let swIsRunning = false;
 let swStartTime = 0;
@@ -219,26 +219,29 @@ unitBtns.forEach(btn => {
 
 targetValueInput.addEventListener('input', updateTargetLabel);
 
-// Format raw ms into components (Dakika . Saniye . Milisaniye 00-99)
-function getTimeUnits(ms) {
+/**
+ * Convert ms into strictly 2-digit integers:
+ * Dakika (00-59), Saniye (00-59), Milisaniye (00-99)
+ */
+function get2DigitTime(ms) {
   const totalSeconds = Math.floor(ms / 1000);
   const minutes = Math.floor(totalSeconds / 60) % 60;
   const seconds = totalSeconds % 60;
-  const milliUnits = Math.floor((ms % 1000) / 10); // 00-99
+  const ms2 = Math.floor((ms % 1000) / 10); // Exactly 00 to 99
 
   return {
     m: minutes,
     s: seconds,
-    msUnit: milliUnits,
+    ms2: ms2,
     strM: String(minutes).padStart(2, '0'),
     strS: String(seconds).padStart(2, '0'),
-    strMs: String(milliUnits).padStart(2, '0'),
-    formatted: `${String(minutes).padStart(2, '0')}.${String(seconds).padStart(2, '0')}.${String(milliUnits).padStart(2, '0')}`
+    strMs: String(ms2).padStart(2, '0'),
+    formatted: `${String(minutes).padStart(2, '0')}.${String(seconds).padStart(2, '0')}.${String(ms2).padStart(2, '0')}`
   };
 }
 
 function renderStopwatch(timeMs) {
-  const { strM, strS, strMs } = getTimeUnits(timeMs);
+  const { strM, strS, strMs } = get2DigitTime(timeMs);
   swPart1.textContent = strM;
   swPart2.textContent = strS;
   swPart3.textContent = strMs;
@@ -246,7 +249,7 @@ function renderStopwatch(timeMs) {
 
 function updateStopwatch() {
   swElapsedTime = performance.now() - swStartTime;
-  renderStopwatch(Math.floor(swElapsedTime));
+  renderStopwatch(swElapsedTime);
   swRafId = requestAnimationFrame(updateStopwatch);
 }
 
@@ -270,9 +273,12 @@ function startStopwatch() {
   lucide.createIcons();
 }
 
+/**
+ * Exact Evaluation based strictly on the 2-digit displayed numbers
+ */
 function evaluateResult(elapsedMs) {
-  const targetVal = parseFloat(targetValueInput.value) || 1;
-  const { m, s, msUnit, formatted } = getTimeUnits(elapsedMs);
+  const targetVal = parseInt(targetValueInput.value) || 1;
+  const { m, s, ms2, formatted } = get2DigitTime(elapsedMs);
 
   let targetFormatted = '';
   let actualFormatted = formatted;
@@ -286,9 +292,8 @@ function evaluateResult(elapsedMs) {
   let icon = '';
 
   if (currentUnit === 'second') {
-    // Target in 00-99 units: targetVal * 100
-    // Actual in 00-99 units: (m * 60 + s) * 100 + msUnit
-    const actualUnits = (m * 60 + s) * 100 + msUnit;
+    // Both target and actual are measured in 2-digit ms units (1 second = 100 units)
+    const actualUnits = (m * 60 + s) * 100 + ms2;
     const targetUnits = targetVal * 100;
     const rawDiff = actualUnits - targetUnits;
     diff = Math.abs(rawDiff);
@@ -300,11 +305,15 @@ function evaluateResult(elapsedMs) {
     const sign = rawDiff >= 0 ? '+' : '-';
     diffText = `${sign}${diff} ms`;
 
-    // Strict evaluation matching user's exact specification
+    // Strict evaluation rules:
+    // < 5 ms (0, 1, 2, 3, 4) -> TİMİ
+    // 5 - 10 ms (5, 6, 7, 8, 9, 10) -> REALLY GOOD
+    // 10 - 15 ms (11, 12, 13, 14, 15) -> NORMAL
+    // > 15 ms -> THİS REALLY BAD
     if (diff < 5) {
       rank = 'MÜKEMMEL';
       title = 'TİMİ';
-      desc = `👑 İnanılmaz! Hedefle aranda sadece ${diff} ms fark var. YOU ARE THE REAL TİMİ!`;
+      desc = `👑 Kusursuz zamanlama! Hedefle farkın sadece ${diff} ms. Sen gerçek bir TİMİ'sin!`;
       badgeClass = 'badge-timi';
       borderClass = 'border-timi';
       icon = '👑';
@@ -329,7 +338,7 @@ function evaluateResult(elapsedMs) {
     } else {
       rank = 'GELİŞTİRİLEBİLİR';
       title = 'THİS REALLY BAD';
-      desc = `⚠️ Hedefin ${diff} ms uzağındasın. TİMİ olmak için daha hızlı olmalısın!`;
+      desc = `⚠️ Hedefin ${diff} ms uzağındasın. TİMİ olmak için tekrar dene!`;
       badgeClass = 'badge-bad';
       borderClass = 'border-bad';
       icon = '⚠️';
@@ -337,7 +346,7 @@ function evaluateResult(elapsedMs) {
     }
 
   } else if (currentUnit === 'millisecond') {
-    const actualUnits = (m * 60 + s) * 100 + msUnit;
+    const actualUnits = (m * 60 + s) * 100 + ms2;
     const targetUnits = targetVal;
     const rawDiff = actualUnits - targetUnits;
     diff = Math.abs(rawDiff);
@@ -352,7 +361,7 @@ function evaluateResult(elapsedMs) {
     if (diff < 5) {
       rank = 'MÜKEMMEL';
       title = 'TİMİ';
-      desc = `👑 Milisaniye ustası! Sadece ${diff} ms fark!`;
+      desc = `👑 Milisaniye ustası! Sadece ${diff} ms fark ile TİMİ!`;
       badgeClass = 'badge-timi';
       borderClass = 'border-timi';
       icon = '👑';
@@ -377,7 +386,7 @@ function evaluateResult(elapsedMs) {
     } else {
       rank = 'GELİŞTİRİLEBİLİR';
       title = 'THİS REALLY BAD';
-      desc = `⚠️ Fark: ${diff} ms. Tekrar dene!`;
+      desc = `⚠️ Fark: ${diff} ms.`;
       badgeClass = 'badge-bad';
       borderClass = 'border-bad';
       icon = '⚠️';
@@ -385,7 +394,7 @@ function evaluateResult(elapsedMs) {
     }
 
   } else if (currentUnit === 'hour') {
-    const actualSeconds = Math.floor(elapsedMs / 1000);
+    const actualSeconds = m * 60 + s;
     const targetSeconds = targetVal * 3600;
     const rawDiff = actualSeconds - targetSeconds;
     diff = Math.abs(rawDiff);
@@ -394,7 +403,6 @@ function evaluateResult(elapsedMs) {
     const sign = rawDiff >= 0 ? '+' : '-';
     diffText = `${sign}${diff} sn`;
 
-    // Hour evaluation in seconds: < 5s -> TİMİ, 5-10s -> REALLY GOOD, 10-15s -> NORMAL, >15s -> THİS REALLY BAD
     if (diff < 5) {
       rank = 'MÜKEMMEL';
       title = 'TİMİ';
@@ -456,7 +464,7 @@ function stopStopwatch() {
 
   const finalElapsed = performance.now() - swStartTime;
   swElapsedTime = finalElapsed;
-  renderStopwatch(Math.floor(finalElapsed));
+  renderStopwatch(finalElapsed);
 
   mainActionBtn.classList.remove('running');
   btnText.textContent = 'BAŞLA';
@@ -520,7 +528,7 @@ function addHistoryItem(title, target, actual, diff, badgeClass) {
 lapBtn.addEventListener('click', () => {
   if (!swIsRunning) return;
   const current = performance.now() - swStartTime;
-  const formatted = getTimeUnits(Math.floor(current)).formatted;
+  const formatted = get2DigitTime(current).formatted;
   
   lapsContainer.classList.remove('hidden');
   const item = document.createElement('div');
