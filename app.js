@@ -1,6 +1,6 @@
 ﻿/**
  * ChronoPulse - Professional Precision Stopwatch, Timer & Live Turkey Clock
- * Strict 2-digit (00.00.00) Engine
+ * Strict 2-digit (00.00.00) Engine | "BETTER THAN TİMİ??" 0 ms Milestone
  */
 
 // Initialize Lucide Icons
@@ -54,6 +54,17 @@ class SoundEngine {
 
   playStop() {
     this.playBeep(440, 'sine', 0.1, 0.2);
+  }
+
+  playMegaVictory() {
+    if (!this.enabled) return;
+    // Epic fanfare for 0 ms PERFECT hit!
+    const notes = [523.25, 659.25, 783.99, 1046.50, 1318.51];
+    notes.forEach((freq, idx) => {
+      setTimeout(() => {
+        this.playBeep(freq, 'triangle', 0.35, 0.3);
+      }, idx * 100);
+    });
   }
 
   playVictory() {
@@ -274,7 +285,12 @@ function startStopwatch() {
 }
 
 /**
- * Exact Evaluation based strictly on the 2-digit displayed numbers
+ * Exact Evaluation across ALL units:
+ * 0 difference -> "BETTER THAN TİMİ??"
+ * 1 - 4 difference -> "TİMİ"
+ * 5 - 10 difference -> "REALLY GOOD"
+ * 11 - 15 difference -> "NORMAL"
+ * > 15 difference -> "THİS REALLY BAD"
  */
 function evaluateResult(elapsedMs) {
   const targetVal = parseInt(targetValueInput.value) || 1;
@@ -283,6 +299,7 @@ function evaluateResult(elapsedMs) {
   let targetFormatted = '';
   let actualFormatted = formatted;
   let diff = 0;
+  let unitSuffix = 'ms';
   let diffText = '';
   let rank = '';
   let title = '';
@@ -292,11 +309,11 @@ function evaluateResult(elapsedMs) {
   let icon = '';
 
   if (currentUnit === 'second') {
-    // Both target and actual are measured in 2-digit ms units (1 second = 100 units)
     const actualUnits = (m * 60 + s) * 100 + ms2;
     const targetUnits = targetVal * 100;
     const rawDiff = actualUnits - targetUnits;
     diff = Math.abs(rawDiff);
+    unitSuffix = 'ms';
 
     const tm = String(Math.floor(targetVal / 60)).padStart(2, '0');
     const ts = String(targetVal % 60).padStart(2, '0');
@@ -305,51 +322,12 @@ function evaluateResult(elapsedMs) {
     const sign = rawDiff >= 0 ? '+' : '-';
     diffText = `${sign}${diff} ms`;
 
-    // Strict evaluation rules:
-    // < 5 ms (0, 1, 2, 3, 4) -> TİMİ
-    // 5 - 10 ms (5, 6, 7, 8, 9, 10) -> REALLY GOOD
-    // 10 - 15 ms (11, 12, 13, 14, 15) -> NORMAL
-    // > 15 ms -> THİS REALLY BAD
-    if (diff < 5) {
-      rank = 'MÜKEMMEL';
-      title = 'TİMİ';
-      desc = `👑 Kusursuz zamanlama! Hedefle farkın sadece ${diff} ms. Sen gerçek bir TİMİ'sin!`;
-      badgeClass = 'badge-timi';
-      borderClass = 'border-timi';
-      icon = '👑';
-      sounds.playVictory();
-      triggerConfetti();
-    } else if (diff <= 10) {
-      rank = 'HARİKA';
-      title = 'REALLY GOOD';
-      desc = `⚡ Harika refleks! Hedefe sadece ${diff} ms uzaktasın.`;
-      badgeClass = 'badge-good';
-      borderClass = 'border-good';
-      icon = '⚡';
-      sounds.playGood();
-    } else if (diff <= 15) {
-      rank = 'ORTA';
-      title = 'NORMAL';
-      desc = `🎯 Fena değil! ${diff} ms fark ile normale yakınsın.`;
-      badgeClass = 'badge-normal';
-      borderClass = 'border-normal';
-      icon = '🎯';
-      sounds.playBeep(440, 'sine', 0.15, 0.15);
-    } else {
-      rank = 'GELİŞTİRİLEBİLİR';
-      title = 'THİS REALLY BAD';
-      desc = `⚠️ Hedefin ${diff} ms uzağındasın. TİMİ olmak için tekrar dene!`;
-      badgeClass = 'badge-bad';
-      borderClass = 'border-bad';
-      icon = '⚠️';
-      sounds.playBeep(220, 'sawtooth', 0.25, 0.2);
-    }
-
   } else if (currentUnit === 'millisecond') {
     const actualUnits = (m * 60 + s) * 100 + ms2;
     const targetUnits = targetVal;
     const rawDiff = actualUnits - targetUnits;
     diff = Math.abs(rawDiff);
+    unitSuffix = 'ms';
 
     const ts = String(Math.floor(targetVal / 100)).padStart(2, '0');
     const tms = String(targetVal % 100).padStart(2, '0');
@@ -358,85 +336,61 @@ function evaluateResult(elapsedMs) {
     const sign = rawDiff >= 0 ? '+' : '-';
     diffText = `${sign}${diff} ms`;
 
-    if (diff < 5) {
-      rank = 'MÜKEMMEL';
-      title = 'TİMİ';
-      desc = `👑 Milisaniye ustası! Sadece ${diff} ms fark ile TİMİ!`;
-      badgeClass = 'badge-timi';
-      borderClass = 'border-timi';
-      icon = '👑';
-      sounds.playVictory();
-      triggerConfetti();
-    } else if (diff <= 10) {
-      rank = 'HARİKA';
-      title = 'REALLY GOOD';
-      desc = `⚡ Fark sadece ${diff} ms.`;
-      badgeClass = 'badge-good';
-      borderClass = 'border-good';
-      icon = '⚡';
-      sounds.playGood();
-    } else if (diff <= 15) {
-      rank = 'ORTA';
-      title = 'NORMAL';
-      desc = `🎯 Fark ${diff} ms.`;
-      badgeClass = 'badge-normal';
-      borderClass = 'border-normal';
-      icon = '🎯';
-      sounds.playBeep(440, 'sine', 0.15, 0.15);
-    } else {
-      rank = 'GELİŞTİRİLEBİLİR';
-      title = 'THİS REALLY BAD';
-      desc = `⚠️ Fark: ${diff} ms.`;
-      badgeClass = 'badge-bad';
-      borderClass = 'border-bad';
-      icon = '⚠️';
-      sounds.playBeep(220, 'sawtooth', 0.25, 0.2);
-    }
-
   } else if (currentUnit === 'hour') {
     const actualSeconds = m * 60 + s;
     const targetSeconds = targetVal * 3600;
     const rawDiff = actualSeconds - targetSeconds;
     diff = Math.abs(rawDiff);
+    unitSuffix = 'sn';
 
     targetFormatted = `${String(targetVal).padStart(2, '0')}.00.00`;
     const sign = rawDiff >= 0 ? '+' : '-';
     diffText = `${sign}${diff} sn`;
+  }
 
-    if (diff < 5) {
-      rank = 'MÜKEMMEL';
-      title = 'TİMİ';
-      desc = `👑 Saat bazında muazzam hassasiyet! Fark sadece ${diff} saniye.`;
-      badgeClass = 'badge-timi';
-      borderClass = 'border-timi';
-      icon = '👑';
-      sounds.playVictory();
-      triggerConfetti();
-    } else if (diff <= 10) {
-      rank = 'HARİKA';
-      title = 'REALLY GOOD';
-      desc = `⚡ Fark sadece ${diff} saniye.`;
-      badgeClass = 'badge-good';
-      borderClass = 'border-good';
-      icon = '⚡';
-      sounds.playGood();
-    } else if (diff <= 15) {
-      rank = 'ORTA';
-      title = 'NORMAL';
-      desc = `🎯 Fark: ${diff} saniye.`;
-      badgeClass = 'badge-normal';
-      borderClass = 'border-normal';
-      icon = '🎯';
-      sounds.playBeep(440, 'sine', 0.15, 0.15);
-    } else {
-      rank = 'GELİŞTİRİLEBİLİR';
-      title = 'THİS REALLY BAD';
-      desc = `⚠️ Fark: ${diff} saniye.`;
-      badgeClass = 'badge-bad';
-      borderClass = 'border-bad';
-      icon = '⚠️';
-      sounds.playBeep(220, 'sawtooth', 0.25, 0.2);
-    }
+  // Universal Milestone Evaluation across ALL units:
+  if (diff === 0) {
+    rank = 'EFSANEVİ (0 FARK)';
+    title = 'BETTER THAN TİMİ??';
+    desc = `👑 İNANILMAZ REKOR! Tam 0 ${unitSuffix} farkla durdurdun! Resmi olarak TİMİ'den daha iyisin!`;
+    badgeClass = 'badge-better';
+    borderClass = 'border-better';
+    icon = '🏆';
+    sounds.playMegaVictory();
+    triggerMegaConfetti();
+  } else if (diff >= 1 && diff <= 4) {
+    rank = 'MÜKEMMEL';
+    title = 'TİMİ';
+    desc = `👑 Kusursuz zamanlama! Fark sadece ${diff} ${unitSuffix}. Sen bir TİMİ'sin!`;
+    badgeClass = 'badge-timi';
+    borderClass = 'border-timi';
+    icon = '👑';
+    sounds.playVictory();
+    triggerConfetti();
+  } else if (diff >= 5 && diff <= 10) {
+    rank = 'HARİKA';
+    title = 'REALLY GOOD';
+    desc = `⚡ Çok iyi refleks! Fark sadece ${diff} ${unitSuffix}.`;
+    badgeClass = 'badge-good';
+    borderClass = 'border-good';
+    icon = '⚡';
+    sounds.playGood();
+  } else if (diff >= 11 && diff <= 15) {
+    rank = 'ORTA';
+    title = 'NORMAL';
+    desc = `🎯 Fena değil! ${diff} ${unitSuffix} fark ile ortalama bir skor.`;
+    badgeClass = 'badge-normal';
+    borderClass = 'border-normal';
+    icon = '🎯';
+    sounds.playBeep(440, 'sine', 0.15, 0.15);
+  } else {
+    rank = 'GELİŞTİRİLEBİLİR';
+    title = 'THİS REALLY BAD';
+    desc = `⚠️ Hedefin ${diff} ${unitSuffix} uzağındasın. TİMİ'yi geçmek için tekrar dene!`;
+    badgeClass = 'badge-bad';
+    borderClass = 'border-bad';
+    icon = '⚠️';
+    sounds.playBeep(220, 'sawtooth', 0.25, 0.2);
   }
 
   // Populate Result Card
@@ -558,6 +512,28 @@ function triggerConfetti() {
       spread: 70,
       origin: { y: 0.6 }
     });
+  }
+}
+
+function triggerMegaConfetti() {
+  if (typeof confetti === 'function') {
+    // 3 rounds of huge multi-color confetti
+    const count = 200;
+    const defaults = { origin: { y: 0.7 } };
+
+    function fire(particleRatio, opts) {
+      confetti({
+        ...defaults,
+        ...opts,
+        particleCount: Math.floor(count * particleRatio)
+      });
+    }
+
+    fire(0.25, { spread: 26, startVelocity: 55 });
+    fire(0.2, { spread: 60 });
+    fire(0.35, { spread: 100, decay: 0.91, scalar: 0.8 });
+    fire(0.1, { spread: 120, startVelocity: 25, decay: 0.92, scalar: 1.2 });
+    fire(0.1, { spread: 120, startVelocity: 45 });
   }
 }
 

@@ -62,6 +62,18 @@
 }
 
 /* Rank Badge Styles */
+.badge-better {
+  background: linear-gradient(135deg, rgba(236, 72, 153, 0.3), rgba(245, 158, 11, 0.3), rgba(0, 245, 160, 0.3));
+  border-color: #f59e0b;
+  color: #fef08a;
+  box-shadow: 0 0 20px rgba(245, 158, 11, 0.5);
+  animation: pulse 1.2s infinite;
+}
+.border-better {
+  border-color: #fbbf24 !important;
+  box-shadow: 0 0 45px rgba(251, 191, 36, 0.5), 0 0 15px rgba(236, 72, 153, 0.4) !important;
+}
+
 .badge-timi {
   background: linear-gradient(135deg, rgba(234, 179, 8, 0.2), rgba(16, 185, 129, 0.2));
   border-color: #eab308;
