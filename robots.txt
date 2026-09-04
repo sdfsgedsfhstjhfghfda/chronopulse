@@ -1,0 +1,3 @@
+﻿User-agent: *
+Allow: /
+Sitemap: https://singularityx228.github.io/chronopulse/sitemap.xml
