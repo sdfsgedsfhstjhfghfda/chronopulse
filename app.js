@@ -3,6 +3,49 @@
  * Worldwide Real-Time Multiplayer Sync via Public Global Cloud Relay + BroadcastChannel
  */
 
+/* ==========================================================================
+   0. GÜVENLİK VE KOD KORUMA KATMANI (ANTI-INSPECT & DEVTOOLS BLOCKER)
+   ========================================================================== */
+(function initCodeProtection() {
+  // 1. Sağ tık (Context Menu) Engelleme
+  document.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+    return false;
+  });
+
+  // 2. Kısayol Tuş Kombinasyonlarını Engelleme (F12, Ctrl+Shift+I/J/C, Ctrl+U, Ctrl+S)
+  document.addEventListener('keydown', (e) => {
+    // F12 tuşu
+    if (e.keyCode === 123 || e.key === 'F12') {
+      e.preventDefault();
+      e.stopPropagation();
+      return false;
+    }
+
+    // Ctrl+Shift+I (İncele), Ctrl+Shift+J (Konsol), Ctrl+Shift+C (Öğe Seç)
+    if (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'i' || e.key === 'J' || e.key === 'j' || e.key === 'C' || e.key === 'c')) {
+      e.preventDefault();
+      e.stopPropagation();
+      return false;
+    }
+
+    // Ctrl+U (Kaynağı Görüntüle), Ctrl+S (Sayfayı Kaydet)
+    if (e.ctrlKey && (e.key === 'u' || e.key === 'U' || e.key === 's' || e.key === 'S')) {
+      e.preventDefault();
+      e.stopPropagation();
+      return false;
+    }
+  }, true);
+
+  // 3. Konsol Güvenlik Uyarısı
+  try {
+    const warningTitle = 'font-size: 32px; font-weight: 900; color: #ef4444; text-shadow: 0 0 10px rgba(239,68,68,0.8);';
+    const warningBody = 'font-size: 13px; font-weight: bold; color: #cbd5e1;';
+    console.log('%c⚠️ DİKKAT!', warningTitle);
+    console.log('%cChronoPulse kodları fikri mülkiyet koruması altındadır. Kodların kopyalanması, tersine mühendislik yapılması veya yetkisiz çoğaltılması yasaktır.', warningBody);
+  } catch (err) {}
+})();
+
 // Initialize Lucide Icons
 lucide.createIcons();
 
