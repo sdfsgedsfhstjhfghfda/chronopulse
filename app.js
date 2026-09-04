@@ -803,10 +803,28 @@ function generateRandomVsTarget() {
 }
 
 function generateRandomGuessDuration() {
-  // 3.10 saniye ile 18.90 saniye arasında kriptografik rastgele süre (ms cinsinden)
-  const sec = Math.floor(getHighEntropyRandom() * (18 - 3 + 1)) + 3;
-  const ms = Math.floor(getHighEntropyRandom() * 99) + 1;
-  return (sec * 100 + ms) * 10;
+  const categoryRoll = getHighEntropyRandom(); // 0.00 - 1.00 arası dağılım
+
+  if (categoryRoll < 0.20) {
+    // 1. KATEGORİ: SAF MİLİSANİYE DURMALARI (10 ms - 99 ms arası - 10 milisaniyenin altında asla olmayacak!)
+    const ms = Math.floor(getHighEntropyRandom() * (99 - 10 + 1)) + 10;
+    return ms * 10; // 100 ms ile 990 ms arası (0.10 sn - 0.99 sn)
+  } else if (categoryRoll < 0.45) {
+    // 2. KATEGORİ: ÇOK KISA / ANI DURMALAR (1.00 sn - 2.99 sn arası, örn: 1.00, 1.25, 1.50, 1.82, 2.30 vb.)
+    const sec = Math.floor(getHighEntropyRandom() * (2 - 1 + 1)) + 1; // 1 veya 2 sn
+    const ms = Math.floor(getHighEntropyRandom() * 100);
+    return (sec * 100 + ms) * 10;
+  } else if (categoryRoll < 0.78) {
+    // 3. KATEGORİ: ORTA SÜRELİ DURMALAR (3.00 sn - 8.99 sn arası, örn: 3.40, 4.15, 5.50, 6.78, 7.90 vb.)
+    const sec = Math.floor(getHighEntropyRandom() * (8 - 3 + 1)) + 3; // 3 - 8 sn
+    const ms = Math.floor(getHighEntropyRandom() * 100);
+    return (sec * 100 + ms) * 10;
+  } else {
+    // 4. KATEGORİ: UZUN SÜRELİ DAYANIKLILIK DURMALARI (9.00 sn - 22.99 sn arası)
+    const sec = Math.floor(getHighEntropyRandom() * (22 - 9 + 1)) + 9; // 9 - 22 sn
+    const ms = Math.floor(getHighEntropyRandom() * 100);
+    return (sec * 100 + ms) * 10;
+  }
 }
 
 const myClientId = 'usr_' + Math.random().toString(36).substring(2, 9);
@@ -1621,12 +1639,19 @@ function checkGuessOutcome() {
   if (!myGuess || !opponentGuess || !currentMatch) return;
 
   const actualCentis = Math.round(guessStopDurationMs / 10);
-  const actS = String(Math.floor(actualCentis / 100)).padStart(2, '0');
+  const actM = String(Math.floor(actualCentis / 6000)).padStart(2, '0');
+  const actS = String(Math.floor((actualCentis % 6000) / 100)).padStart(2, '0');
   const actMs = String(actualCentis % 100).padStart(2, '0');
-  const actualFormatted = `${actS}.${actMs} Saniye`;
+  
+  let actualFormatted = '';
+  if (actualCentis < 100) {
+    actualFormatted = `00.00.${actMs} (${actualCentis} Milisaniye)`;
+  } else {
+    actualFormatted = `${actS}.${actMs} Saniye`;
+  }
 
   // Süreyi Ortaya Çıkar!
-  guessMysteryDisplay.textContent = `00.${actS}.${actMs}`;
+  guessMysteryDisplay.textContent = `${actM}.${actS}.${actMs}`;
   guessStatusNotice.textContent = `🎯 Gerçek Durma Süresi: ${actualFormatted}`;
   guessStatusNotice.className = 'text-sm font-black text-brand-glow mt-2';
 
