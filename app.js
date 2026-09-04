@@ -874,6 +874,12 @@ const guessInputMs = document.getElementById('guessInputMs');
 const guessSubmitBtn = document.getElementById('guessSubmitBtn');
 const guessWaitingMessage = document.getElementById('guessWaitingMessage');
 
+// Robot Elements
+const robotPhysicalBtn = document.getElementById('robotPhysicalBtn');
+const robotBtnLabel = document.getElementById('robotBtnLabel');
+const robotStatusNotice = document.getElementById('robotStatusNotice');
+const robotArmContainer = document.getElementById('robotArmContainer');
+
 // Winner Banner
 const arenaWinnerBanner = document.getElementById('arenaWinnerBanner');
 const arenaWinnerTitle = document.getElementById('arenaWinnerTitle');
@@ -1373,6 +1379,18 @@ function launchArenaMatch(matchId, p1, p2, targetTime, chosenMode, incomingGuess
     guessHasStopped = false;
     if (guessTimeoutId) clearTimeout(guessTimeoutId);
 
+    if (robotPhysicalBtn) {
+      robotPhysicalBtn.className = 'w-16 h-16 rounded-full bg-gradient-to-b from-red-500 via-red-600 to-red-800 border-2 border-red-400 shadow-[0_6px_0_#7f1d1d,0_10px_20px_rgba(239,68,68,0.5)] flex flex-col items-center justify-center font-black text-[11px] text-white uppercase tracking-wider select-none transform transition-all duration-150';
+      robotPhysicalBtn.style.transform = 'translateY(0px)';
+      robotBtnLabel.textContent = 'START';
+      robotStatusNotice.textContent = 'Robot bekleniyor...';
+      robotStatusNotice.className = 'text-[10px] text-amber-400 font-bold mt-3 text-center animate-pulse';
+    }
+    if (robotArmContainer) {
+      robotArmContainer.style.top = '-240px';
+      robotArmContainer.style.opacity = '0';
+    }
+
     // Rastgele durma zamanı: İki oyuncuya da senkronize iletilen süre (veya yüksek entropili üretim)
     guessStopDurationMs = incomingGuessDurationMs || generateRandomGuessDuration();
 
@@ -1465,7 +1483,10 @@ function startPrepCountdown() {
 
       // KULLANICI KURALI: "o hazırlık sayacı biterbitmez direk başlasın sayaç"
       if (currentArenaMode === 'guess') {
-        startGuessModeRunning();
+        guessStatusNotice.textContent = '🤖 Robot butona uzanıyor...';
+        animateRobotPress(() => {
+          startGuessModeRunning();
+        });
       } else {
         startArenaRunning();
       }
@@ -1473,12 +1494,68 @@ function startPrepCountdown() {
   }, 1000);
 }
 
+/* --- 🤖 ROBOT ELİ ANİMASYONU VE BUTONA BASIŞ --- */
+
+function animateRobotPress(onPressed) {
+  if (!robotArmContainer || !robotPhysicalBtn) {
+    if (onPressed) onPressed();
+    return;
+  }
+
+  // Buton Başlangıç Hazırlığı
+  robotPhysicalBtn.className = 'w-16 h-16 rounded-full bg-gradient-to-b from-red-500 via-red-600 to-red-800 border-2 border-red-400 shadow-[0_6px_0_#7f1d1d,0_10px_20px_rgba(239,68,68,0.5)] flex flex-col items-center justify-center font-black text-[11px] text-white uppercase tracking-wider select-none transform transition-all duration-150';
+  robotPhysicalBtn.style.transform = 'translateY(0px)';
+  robotBtnLabel.textContent = 'START';
+  robotStatusNotice.textContent = '🤖 Robot butona uzanıyor...';
+  robotStatusNotice.className = 'text-[10px] text-amber-400 font-bold mt-3 text-center animate-pulse';
+
+  // 1. Adım: Robot kolu sahneye iner (Butonun hemen üstüne yaklaşır)
+  robotArmContainer.style.opacity = '1';
+  robotArmContainer.style.top = '-50px';
+  sounds.playBeep(480, 'triangle', 0.12, 0.25);
+
+  // 2. Adım: Hedefe kilitlenme ve aşağı sert basış
+  setTimeout(() => {
+    robotStatusNotice.textContent = '🎯 Butona basılıyor!';
+    robotStatusNotice.className = 'text-[10px] text-red-400 font-black mt-3 text-center animate-bounce';
+    
+    // Parmak butona gömülür (İniş)
+    robotArmContainer.style.top = '10px';
+
+    setTimeout(() => {
+      // 3. Adım: Butona tam basılma anı (TIK!)
+      robotPhysicalBtn.style.transform = 'translateY(6px)';
+      robotPhysicalBtn.className = 'w-16 h-16 rounded-full bg-gradient-to-b from-emerald-400 via-emerald-500 to-teal-700 border-2 border-emerald-300 shadow-[0_1px_0_#064e3b,0_0_25px_rgba(16,185,129,0.9)] flex flex-col items-center justify-center font-black text-[11px] text-white uppercase tracking-wider select-none';
+      robotBtnLabel.textContent = 'ACTIVE';
+      robotStatusNotice.textContent = '⚡ BAŞLATILDI!';
+      robotStatusNotice.className = 'text-[10px] text-emerald-400 font-black mt-3 text-center';
+
+      // Mekanik Tık / Hidrolik Ses
+      sounds.playBeep(260, 'square', 0.08, 0.4);
+      sounds.playStart();
+
+      guessStatusNotice.textContent = '⏳ Sayaç başladı! İçinden dikkatle say!';
+      guessStatusNotice.className = 'text-xs sm:text-sm font-semibold text-purple-300 mt-2 animate-pulse';
+
+      // SAYAÇ TAM O BASIŞ ANINDA DİREKT BAŞLAR!
+      if (onPressed) onPressed();
+
+      // 4. Adım: Robot kolu yukarı çekilir
+      setTimeout(() => {
+        robotArmContainer.style.top = '-260px';
+        robotArmContainer.style.opacity = '0';
+      }, 500);
+
+    }, 200);
+
+  }, 650);
+}
+
 /* --- TAHMİN ET MODU AKIŞI --- */
 
 function startGuessModeRunning() {
   guessHasStopped = false;
   arenaStartTime = performance.now();
-  sounds.playStart();
 
   // Gizli sayaç rastgele zamanda kendiliğinden durur!
   guessTimeoutId = setTimeout(() => {
@@ -1490,6 +1567,14 @@ function triggerGuessStop() {
   guessHasStopped = true;
   sounds.playStop();
   sounds.playBeep(700, 'sawtooth', 0.25, 0.3);
+
+  // Robot Butonunu Durduruldu Haline Getir
+  if (robotPhysicalBtn) {
+    robotPhysicalBtn.className = 'w-16 h-16 rounded-full bg-gradient-to-b from-slate-700 to-slate-900 border-2 border-slate-600 shadow-inner flex flex-col items-center justify-center font-black text-[11px] text-slate-400 uppercase tracking-wider select-none';
+    robotBtnLabel.textContent = 'STOP';
+    robotStatusNotice.textContent = '🛑 Sayaç durdu!';
+    robotStatusNotice.className = 'text-[10px] text-slate-400 font-bold mt-3 text-center';
+  }
 
   guessMysteryDisplay.textContent = 'STOP! 🛑';
   guessStatusNotice.textContent = '🛑 SAYAÇ DURDU! Şimdi saydığın süreyi aşağıya yaz:';
