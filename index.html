@@ -549,10 +549,32 @@
         </div>
       </div>
 
-      <!-- Countdown Overlay before starting -->
+      <!-- 1. Aşama: Eşleşme Geri Sayımı Overlay -->
       <div id="arenaCountdownOverlay" class="absolute inset-0 z-30 bg-slate-950/90 rounded-3xl flex flex-col items-center justify-center hidden">
         <span id="arenaCountdownNumber" class="text-8xl sm:text-9xl font-black text-amber-400 animate-bounce">3</span>
-        <span id="arenaCountdownLabel" class="text-sm font-bold text-slate-400 uppercase tracking-widest mt-4">Hazırlanın...</span>
+        <span id="arenaCountdownLabel" class="text-sm font-bold text-slate-400 uppercase tracking-widest mt-4">Eşleşme Kuruluyor...</span>
+      </div>
+
+      <!-- 2. Aşama: Özel "HAZIRLIK SAYACI" (Farklı Görsel ve Fütüristik Efekt) -->
+      <div id="arenaPrepOverlay" class="absolute inset-0 z-30 bg-slate-950/95 backdrop-blur-2xl rounded-3xl flex flex-col items-center justify-center hidden">
+        <div class="relative flex items-center justify-center mb-6">
+          <!-- Dönen Fütüristik Neon Çember -->
+          <div class="w-48 h-48 sm:w-56 sm:h-56 rounded-full border-4 border-dashed border-red-500/60 animate-spin"></div>
+          <!-- Nabız Çemberi -->
+          <div class="absolute inset-0 rounded-full bg-red-500/10 animate-ping"></div>
+          <!-- Büyük Hazırlık Sayısı -->
+          <span id="prepCountdownNumber" class="absolute text-7xl sm:text-8xl font-black text-red-500 font-mono tracking-tight drop-shadow-[0_0_25px_rgba(239,68,68,0.8)]">3</span>
+        </div>
+
+        <div class="text-center px-4">
+          <div class="inline-flex items-center space-x-2 px-3.5 py-1 rounded-full bg-red-500/20 border border-red-500/40 text-red-400 text-xs font-black uppercase tracking-widest mb-2 animate-pulse">
+            <span>🚨 DİKKAT! SON HAZIRLIK SAYACI 🚨</span>
+          </div>
+          <h4 class="text-lg sm:text-xl font-black text-white">ODAKLAN! GÖZÜNÜ AYIRMA!</h4>
+          <p class="text-xs text-amber-400 font-semibold mt-1 animate-pulse">
+            ⚡ Sayım biter bitmez sayaç DİREKT olarak başlayacaktır!
+          </p>
+        </div>
       </div>
 
       <!-- SECTION A: Normal / Timi Modu İçin İki Oyunculu Grid -->

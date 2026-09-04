@@ -765,21 +765,34 @@ updateTargetLabel();
    5. ⚔️ GLOBAL 1v1 VS ARENA - WORLDWIDE CLOUD REAL-TIME ENGINE
    ========================================================================== */
 
+function getHighEntropyRandom() {
+  try {
+    const arr = new Uint32Array(2);
+    window.crypto.getRandomValues(arr);
+    return (arr[0] * 4294967296 + arr[1]) / (4294967296 * 4294967296);
+  } catch (e) {
+    return Math.random();
+  }
+}
+
 function generateRandomVsTarget() {
-  const isPureMs = Math.random() < 0.20;
+  const rand = getHighEntropyRandom();
+  const isPureMs = rand < 0.15;
 
   if (isPureMs) {
-    const ms = Math.floor(Math.random() * (99 - 3 + 1)) + 3;
+    // 3 ms ile 99 ms arasında tam rastgele
+    const ms = Math.floor(getHighEntropyRandom() * (99 - 3 + 1)) + 3;
     return {
       unit: 'millisecond',
       main: ms,
       sub: 0
     };
   } else {
-    const sec = Math.floor(Math.random() * (10 - 3 + 1)) + 3;
+    // 2 saniyeden 22 saniyeye kadar çok geniş ve çeşitli aralık (örn: 2.37, 4.81, 7.15, 11.44, 15.89, 18.02 vb.)
+    const sec = Math.floor(getHighEntropyRandom() * (22 - 2 + 1)) + 2;
     let ms = 0;
-    if (Math.random() > 0.35) {
-      ms = Math.floor(Math.random() * 100);
+    if (getHighEntropyRandom() > 0.10) {
+      ms = Math.floor(getHighEntropyRandom() * 99) + 1;
     }
     return {
       unit: 'second',
@@ -787,6 +800,13 @@ function generateRandomVsTarget() {
       sub: ms
     };
   }
+}
+
+function generateRandomGuessDuration() {
+  // 3.10 saniye ile 18.90 saniye arasında kriptografik rastgele süre (ms cinsinden)
+  const sec = Math.floor(getHighEntropyRandom() * (18 - 3 + 1)) + 3;
+  const ms = Math.floor(getHighEntropyRandom() * 99) + 1;
+  return (sec * 100 + ms) * 10;
 }
 
 const myClientId = 'usr_' + Math.random().toString(36).substring(2, 9);
@@ -825,6 +845,8 @@ const arenaTargetContainer = document.getElementById('arenaTargetContainer');
 const arenaTargetLabel = document.getElementById('arenaTargetLabel');
 const arenaCountdownOverlay = document.getElementById('arenaCountdownOverlay');
 const arenaCountdownNumber = document.getElementById('arenaCountdownNumber');
+const arenaPrepOverlay = document.getElementById('arenaPrepOverlay');
+const prepCountdownNumber = document.getElementById('prepCountdownNumber');
 
 // Standard Mode Elements (Timi / Normal)
 const arenaStandardSection = document.getElementById('arenaStandardSection');
@@ -970,7 +992,7 @@ function handleRealtimeMessage(data) {
 
     case 'INVITE_ACCEPTED':
       if (data.toUser && data.toUser.toLowerCase() === currentUsername.toLowerCase()) {
-        openModeSelectionModal(data.matchId, currentUsername, data.fromUsername, data.targetTime);
+        openModeSelectionModal(data.matchId, currentUsername, data.fromUsername, data.targetTime, data.guessDurationMs);
       }
       break;
 
@@ -999,7 +1021,7 @@ function handleRealtimeMessage(data) {
 
     case 'ARENA_REMATCH':
       if (currentMatch && currentMatch.matchId === data.matchId) {
-        openModeSelectionModal(data.newMatchId, currentMatch.p1, currentMatch.p2, data.targetTime);
+        openModeSelectionModal(data.newMatchId, currentMatch.p1, currentMatch.p2, data.targetTime, data.guessDurationMs);
       }
       break;
   }
@@ -1129,12 +1151,14 @@ function renderPlayersList() {
       btn.innerHTML = '<span>Gönderildi...</span>';
       
       const randomTarget = generateRandomVsTarget();
+      const randomGuessDuration = generateRandomGuessDuration();
 
       broadcast({
         type: 'INVITE_SEND',
         fromUsername: currentUsername,
         targetUser: targetUser,
-        targetTime: randomTarget
+        targetTime: randomTarget,
+        guessDurationMs: randomGuessDuration
       });
       sounds.playBeep(520, 'sine', 0.1, 0.2);
     });
@@ -1155,10 +1179,11 @@ acceptInviteBtn.addEventListener('click', () => {
     fromUsername: currentUsername,
     toUser: currentInvite.fromUsername,
     targetTime: currentInvite.targetTime,
+    guessDurationMs: currentInvite.guessDurationMs,
     matchId: matchId
   });
 
-  openModeSelectionModal(matchId, currentUsername, currentInvite.fromUsername, currentInvite.targetTime);
+  openModeSelectionModal(matchId, currentUsername, currentInvite.fromUsername, currentInvite.targetTime, currentInvite.guessDurationMs);
   currentInvite = null;
 });
 
@@ -1179,7 +1204,7 @@ declineInviteBtn.addEventListener('click', () => {
    OYUN MODU SEÇİMİ (TİMİ MOD / NORMAL MOD / TAHMİN ET)
    ========================================================================== */
 
-function openModeSelectionModal(matchId, p1, p2, targetTime) {
+function openModeSelectionModal(matchId, p1, p2, targetTime, guessDurationMs) {
   vsModal.classList.add('hidden');
   incomingInviteModal.classList.add('hidden');
   vsArenaModal.classList.add('hidden');
@@ -1187,7 +1212,13 @@ function openModeSelectionModal(matchId, p1, p2, targetTime) {
 
   myModeChoice = null;
   opponentModeChoice = null;
-  pendingModeMatch = { matchId, p1, p2, targetTime };
+  pendingModeMatch = {
+    matchId,
+    p1,
+    p2,
+    targetTime,
+    guessDurationMs: guessDurationMs || generateRandomGuessDuration()
+  };
 
   modeStatusText.textContent = 'Oyun modunu seçin (TİMİ MOD, NORMAL MOD veya TAHMİN ET)...';
   modeStatusText.className = 'mt-5 text-xs font-semibold text-slate-400 animate-pulse';
@@ -1281,7 +1312,14 @@ function evaluateModeResolution() {
     const matchToLaunch = pendingModeMatch;
     setTimeout(() => {
       modeSelectModal.classList.add('hidden');
-      launchArenaMatch(matchToLaunch.matchId, matchToLaunch.p1, matchToLaunch.p2, matchToLaunch.targetTime, finalMode);
+      launchArenaMatch(
+        matchToLaunch.matchId,
+        matchToLaunch.p1,
+        matchToLaunch.p2,
+        matchToLaunch.targetTime,
+        finalMode,
+        matchToLaunch.guessDurationMs
+      );
       pendingModeMatch = null;
     }, 1500);
   }
@@ -1291,7 +1329,7 @@ function evaluateModeResolution() {
    1v1 ARENA MOTORU (STANDART & TAHMİN ET MODLARI)
    ========================================================================== */
 
-function launchArenaMatch(matchId, p1, p2, targetTime, chosenMode) {
+function launchArenaMatch(matchId, p1, p2, targetTime, chosenMode, incomingGuessDurationMs) {
   isArenaActive = true;
   arenaStopped = false;
   arenaRunning = false;
@@ -1335,10 +1373,8 @@ function launchArenaMatch(matchId, p1, p2, targetTime, chosenMode) {
     guessHasStopped = false;
     if (guessTimeoutId) clearTimeout(guessTimeoutId);
 
-    // Rastgele durma zamanı (4.00 - 14.00 saniye arası): Deterministik olarak iki oyuncuda da aynı salisede durur!
-    const sumCodes = matchId.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
-    const randomCentis = 400 + (sumCodes % 1001); // 400 - 1400 centisaniye (4.00 - 14.00 sn)
-    guessStopDurationMs = randomCentis * 10;
+    // Rastgele durma zamanı: İki oyuncuya da senkronize iletilen süre (veya yüksek entropili üretim)
+    guessStopDurationMs = incomingGuessDurationMs || generateRandomGuessDuration();
 
   } else {
     // STANDART MODLAR (TİMİ / NORMAL)
@@ -1385,8 +1421,9 @@ function launchArenaMatch(matchId, p1, p2, targetTime, chosenMode) {
   vsArenaModal.classList.remove('hidden');
   lucide.createIcons();
 
-  // 3-2-1 Geri Sayım (3 saniye içinde başlar)
+  // 1. AŞAMA: 3 Saniyelik Eşleşme Geri Sayımı
   arenaCountdownOverlay.classList.remove('hidden');
+  arenaPrepOverlay.classList.add('hidden');
   let count = 3;
   arenaCountdownNumber.textContent = count;
   arenaCountdownNumber.className = 'text-8xl sm:text-9xl font-black text-amber-400 animate-bounce';
@@ -1397,18 +1434,40 @@ function launchArenaMatch(matchId, p1, p2, targetTime, chosenMode) {
     if (count > 0) {
       arenaCountdownNumber.textContent = count;
       sounds.playBeep(440, 'triangle', 0.15, 0.3);
-    } else if (count === 0) {
-      arenaCountdownNumber.textContent = 'BAŞLA!';
-      arenaCountdownNumber.className = 'text-7xl sm:text-8xl font-black text-brand-glow animate-pulse';
-      sounds.playStart();
     } else {
       clearInterval(cInterval);
       arenaCountdownOverlay.classList.add('hidden');
+      // 2. AŞAMA: ÖZEL HAZIRLIK SAYACINI BAŞLAT!
+      startPrepCountdown();
+    }
+  }, 1000);
+}
 
+/* --- 2. AŞAMA: ÖZEL HAZIRLIK SAYACI (3.. 2.. 1.. -> DİREKT BAŞLAMA) --- */
+
+function startPrepCountdown() {
+  arenaPrepOverlay.classList.remove('hidden');
+  let prepCount = 3;
+  prepCountdownNumber.textContent = prepCount;
+  sounds.playBeep(700, 'square', 0.12, 0.3);
+
+  const pInterval = setInterval(() => {
+    prepCount--;
+    if (prepCount > 0) {
+      prepCountdownNumber.textContent = prepCount;
+      sounds.playBeep(700 + (3 - prepCount) * 120, 'square', 0.12, 0.3);
+    } else if (prepCount === 0) {
+      prepCountdownNumber.textContent = 'GO! ⚡';
+      sounds.playStart();
+    } else {
+      clearInterval(pInterval);
+      arenaPrepOverlay.classList.add('hidden');
+
+      // KULLANICI KURALI: "o hazırlık sayacı biterbitmez direk başlasın sayaç"
       if (currentArenaMode === 'guess') {
         startGuessModeRunning();
       } else {
-        setupArenaReadyState();
+        startArenaRunning();
       }
     }
   }, 1000);
@@ -1695,11 +1754,13 @@ arenaExitBtn.addEventListener('click', () => {
 arenaRematchBtn.addEventListener('click', () => {
   const newMatchId = 'match_' + Date.now();
   const newRandomTarget = generateRandomVsTarget();
+  const newGuessDuration = generateRandomGuessDuration();
   broadcast({
     type: 'ARENA_REMATCH',
     matchId: currentMatch.matchId,
     newMatchId: newMatchId,
-    targetTime: newRandomTarget
+    targetTime: newRandomTarget,
+    guessDurationMs: newGuessDuration
   });
-  openModeSelectionModal(newMatchId, currentMatch.p1, currentMatch.p2, newRandomTarget);
+  openModeSelectionModal(newMatchId, currentMatch.p1, currentMatch.p2, newRandomTarget, newGuessDuration);
 });
