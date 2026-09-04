@@ -41,13 +41,12 @@
     }
   </script>
 
-  <!-- Google Fonts, Lucide Icons, Canvas Confetti & PeerJS Global Realtime P2P -->
+  <!-- Google Fonts, Lucide Icons, Canvas Confetti & MQTT Global Realtime -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700;800&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/lucide@latest"></script>
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
-  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
   <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
   
   <link rel="stylesheet" href="style.css">
@@ -455,14 +454,77 @@
     </div>
   </div>
 
-  <!-- MODAL: 1v1 VS MATCH ARENA -->
+  <!-- ==================== MODAL: OYUN MODUNU SEÇ (TİMİ MOD vs NORMAL MOD) ==================== -->
+  <div id="modeSelectModal" class="fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-xl flex items-center justify-center p-4 hidden animate-fadeIn">
+    <div class="bg-cyber-card border-2 border-amber-400/60 rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl relative text-center">
+      
+      <div class="w-14 h-14 mx-auto rounded-2xl bg-amber-500/20 border border-amber-400/40 flex items-center justify-center text-3xl mb-3 shadow-lg shadow-amber-500/20">
+        🎯
+      </div>
+
+      <span class="text-xs uppercase font-extrabold tracking-widest text-amber-400">1v1 VS EŞLEŞTİ!</span>
+      <h3 class="text-2xl font-black text-white mt-1">OYUN MODUNU SEÇİN</h3>
+      <p class="text-xs text-slate-400 mt-1">İki oyuncu da mod seçer. Farklı seçim yapılırsa sistem rastgele birini belirler!</p>
+
+      <!-- Mode Cards -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
+        
+        <!-- Option 1: TİMİ MOD (NO LOOK) -->
+        <button id="selectTimiModeBtn" class="group/mode p-5 rounded-2xl bg-slate-900 border-2 border-slate-700 hover:border-amber-400 hover:bg-amber-500/10 text-left transition-all relative overflow-hidden flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-2xl">🙈</span>
+              <span class="text-[10px] font-black px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30">ZOR MOD</span>
+            </div>
+            <h4 class="font-black text-base text-white group-hover/mode:text-amber-300">TİMİ MOD<br><span class="text-xs text-amber-400 font-mono">(NO LOOK)</span></h4>
+            <p class="text-[11px] text-slate-400 mt-2 leading-relaxed">
+              Kronometre sayarken <strong>ekran gizlenir (??.??.??)</strong>! Saniyeyi görmeden içinden sayarak durdurmalısın.
+            </p>
+          </div>
+          <div class="mt-4 pt-3 border-t border-slate-800 text-center text-xs font-bold text-amber-400 group-hover/mode:underline">
+            BU MODU SEÇ ➔
+          </div>
+        </button>
+
+        <!-- Option 2: NORMAL MOD (LOOK) -->
+        <button id="selectNormalModeBtn" class="group/mode p-5 rounded-2xl bg-slate-900 border-2 border-slate-700 hover:border-brand-500 hover:bg-brand-500/10 text-left transition-all relative overflow-hidden flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-2xl">👁️</span>
+              <span class="text-[10px] font-black px-2 py-0.5 rounded-full bg-brand-500/20 text-brand-400 border border-brand-500/30">KLASİK</span>
+            </div>
+            <h4 class="font-black text-base text-white group-hover/mode:text-brand-300">NORMAL MOD<br><span class="text-xs text-brand-400 font-mono">(LOOK)</span></h4>
+            <p class="text-[11px] text-slate-400 mt-2 leading-relaxed">
+              Kronometre sayarken <strong>saniye görünür</strong>. Normal hızda bakarak tam hedefte durdurabilirsin.
+            </p>
+          </div>
+          <div class="mt-4 pt-3 border-t border-slate-800 text-center text-xs font-bold text-brand-400 group-hover/mode:underline">
+            BU MODU SEÇ ➔
+          </div>
+        </button>
+
+      </div>
+
+      <!-- Mode Selection Status / Timer -->
+      <div id="modeStatusText" class="mt-5 text-xs font-semibold text-slate-400 animate-pulse">
+        Seçiminiz bekleniyor...
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ==================== MODAL: 1v1 VS MATCH ARENA ==================== -->
   <div id="vsArenaModal" class="fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-xl flex items-center justify-center p-4 hidden animate-fadeIn">
     <div class="bg-cyber-card border-2 border-purple-500/60 rounded-3xl max-w-3xl w-full p-6 sm:p-10 shadow-2xl relative flex flex-col items-center">
       
-      <div class="w-full flex items-center justify-between border-b border-slate-800 pb-3 mb-6">
+      <!-- Arena Top Bar -->
+      <div class="w-full flex flex-col sm:flex-row items-center justify-between border-b border-slate-800 pb-3 mb-6 gap-2">
         <div class="flex items-center space-x-2">
           <span class="text-xl">⚔️</span>
           <h3 class="font-black text-lg text-white">GLOBAL 1v1 ARENASI</h3>
+          <span id="arenaActiveModeBadge" class="text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/40">
+            🙈 TİMİ MOD (NO LOOK)
+          </span>
         </div>
         <div class="flex items-center space-x-2 bg-slate-900 border border-slate-800 px-3 py-1 rounded-lg text-xs">
           <span class="text-slate-400">Rastgele Hedef:</span>
@@ -470,43 +532,74 @@
         </div>
       </div>
 
+      <!-- Countdown Overlay before starting -->
       <div id="arenaCountdownOverlay" class="absolute inset-0 z-30 bg-slate-950/90 rounded-3xl flex flex-col items-center justify-center hidden">
         <span id="arenaCountdownNumber" class="text-8xl sm:text-9xl font-black text-amber-400 animate-bounce">3</span>
-        <span class="text-sm font-bold text-slate-400 uppercase tracking-widest mt-4">Hazırlanın...</span>
+        <span id="arenaCountdownLabel" class="text-sm font-bold text-slate-400 uppercase tracking-widest mt-4">Hazırlanın...</span>
       </div>
 
+      <!-- Players Battle Grid -->
       <div class="w-full grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <!-- Player 1 (You) -->
         <div class="bg-slate-900/90 border-2 border-brand-500/40 rounded-2xl p-5 text-center relative overflow-hidden">
           <div class="flex items-center justify-center space-x-2 mb-2">
             <span class="w-2.5 h-2.5 rounded-full bg-brand-500"></span>
             <h4 id="arenaP1Name" class="font-black text-lg text-white font-mono">SİZ</h4>
           </div>
+          
+          <!-- Stopwatch Display for P1 -->
           <div id="arenaP1Time" class="text-4xl sm:text-5xl font-mono font-black text-white tracking-tight my-2">00.00.00</div>
-          <div id="arenaP1Diff" class="text-xs font-bold text-slate-400 font-mono">Bekleniyor...</div>
+          <div id="arenaP1Diff" class="text-xs font-bold text-slate-400 font-mono">Hazır</div>
         </div>
 
+        <!-- Player 2 (Opponent) -->
         <div class="bg-slate-900/90 border-2 border-red-500/40 rounded-2xl p-5 text-center relative overflow-hidden">
           <div class="flex items-center justify-center space-x-2 mb-2">
             <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
             <h4 id="arenaP2Name" class="font-black text-lg text-white font-mono">RAKİP</h4>
           </div>
+          
+          <!-- Stopwatch Display for P2 -->
           <div id="arenaP2Time" class="text-4xl sm:text-5xl font-mono font-black text-white tracking-tight my-2">00.00.00</div>
           <div id="arenaP2Diff" class="text-xs font-bold text-slate-400 font-mono">Bekleniyor...</div>
         </div>
       </div>
 
-      <div class="w-full max-w-md flex flex-col items-center">
-        <button id="arenaActionBtn" class="w-full py-5 rounded-2xl font-black text-xl tracking-wider uppercase flex items-center justify-center space-x-3 transition-all transform active:scale-95 shadow-xl select-none bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950">
-          <i data-lucide="square" class="w-6 h-6 fill-current"></i>
-          <span id="arenaBtnText">DURDUR</span>
+      <!-- 10-Second Auto-Start Countdown & Action Area -->
+      <div class="w-full max-w-md flex flex-col items-center space-y-3">
+        
+        <!-- 10s Timer Warning -->
+        <div id="arenaAutoStartNotice" class="text-xs font-semibold text-amber-400 flex items-center space-x-1.5 animate-pulse">
+          <i data-lucide="timer" class="w-3.5 h-3.5"></i>
+          <span>Kendiniz başlatın veya <strong id="arenaAutoStartTimer" class="text-white font-mono text-sm">10</strong> sn sonra otomatik başlar!</span>
+        </div>
+
+        <!-- Big Dual-Action Button (BAŞLAT / DURDUR) -->
+        <button id="arenaActionBtn" class="w-full py-5 rounded-2xl font-black text-xl tracking-wider uppercase flex items-center justify-center space-x-3 transition-all transform active:scale-95 shadow-xl select-none bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 hover:brightness-110">
+          <i data-lucide="play" id="arenaBtnIcon" class="w-6 h-6 fill-current"></i>
+          <span id="arenaBtnText">BAŞLAT</span>
         </button>
       </div>
 
-      <div id="arenaWinnerBanner" class="hidden w-full mt-6 p-4 rounded-2xl text-center border-2 animate-bounceIn">
+      <!-- Arena Winner Banner with Accuracy / Success Rate (%) -->
+      <div id="arenaWinnerBanner" class="hidden w-full mt-6 p-6 rounded-2xl text-center border-2 animate-bounceIn bg-slate-900/95">
         <h3 id="arenaWinnerTitle" class="text-2xl sm:text-3xl font-black">🏆 KAZANDINIZ!</h3>
         <p id="arenaWinnerDesc" class="text-xs sm:text-sm text-slate-200 mt-1">Harika zamanlama!</p>
+
+        <!-- Accuracy Cards -->
+        <div class="grid grid-cols-2 gap-3 max-w-sm mx-auto my-4 text-xs font-mono">
+          <div class="p-2.5 rounded-xl bg-slate-950/80 border border-slate-800">
+            <span class="text-slate-400 block text-[10px] uppercase">Sizin Başarı Oranınız</span>
+            <strong id="arenaP1Accuracy" class="text-brand-glow text-base font-black">%98.5</strong>
+          </div>
+          <div class="p-2.5 rounded-xl bg-slate-950/80 border border-slate-800">
+            <span class="text-slate-400 block text-[10px] uppercase">Rakip Başarı Oranı</span>
+            <strong id="arenaP2Accuracy" class="text-red-400 text-base font-black">%92.1</strong>
+          </div>
+        </div>
+
         <div class="flex items-center justify-center space-x-3 mt-4">
-          <button id="arenaRematchBtn" class="px-5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 font-bold text-xs text-white">Tekrar VS At</button>
+          <button id="arenaRematchBtn" class="px-5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 font-bold text-xs text-white shadow-lg shadow-purple-500/20">Tekrar VS At</button>
           <button id="arenaExitBtn" class="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 font-bold text-xs text-slate-300">Arenadan Çık</button>
         </div>
       </div>
@@ -514,6 +607,7 @@
     </div>
   </div>
 
+  <!-- Footer -->
   <footer class="relative z-10 border-t border-slate-800/80 bg-cyber-bg/50 py-4 text-center text-xs text-slate-500">
     <div class="max-w-6xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
       <div><span>© 2026 ChronoPulse • Herkese Açık Global Kronometre, Zamanlayıcı & 1v1 VS</span></div>

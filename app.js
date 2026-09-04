@@ -811,7 +811,15 @@ const inviteSenderName = document.getElementById('inviteSenderName');
 const acceptInviteBtn = document.getElementById('acceptInviteBtn');
 const declineInviteBtn = document.getElementById('declineInviteBtn');
 
+// Mode Selection Modal Elements
+const modeSelectModal = document.getElementById('modeSelectModal');
+const selectTimiModeBtn = document.getElementById('selectTimiModeBtn');
+const selectNormalModeBtn = document.getElementById('selectNormalModeBtn');
+const modeStatusText = document.getElementById('modeStatusText');
+
+// Arena Modal Elements
 const vsArenaModal = document.getElementById('vsArenaModal');
+const arenaActiveModeBadge = document.getElementById('arenaActiveModeBadge');
 const arenaTargetLabel = document.getElementById('arenaTargetLabel');
 const arenaCountdownOverlay = document.getElementById('arenaCountdownOverlay');
 const arenaCountdownNumber = document.getElementById('arenaCountdownNumber');
@@ -821,10 +829,16 @@ const arenaP1Time = document.getElementById('arenaP1Time');
 const arenaP2Time = document.getElementById('arenaP2Time');
 const arenaP1Diff = document.getElementById('arenaP1Diff');
 const arenaP2Diff = document.getElementById('arenaP2Diff');
+const arenaAutoStartNotice = document.getElementById('arenaAutoStartNotice');
+const arenaAutoStartTimer = document.getElementById('arenaAutoStartTimer');
 const arenaActionBtn = document.getElementById('arenaActionBtn');
+const arenaBtnIcon = document.getElementById('arenaBtnIcon');
+const arenaBtnText = document.getElementById('arenaBtnText');
 const arenaWinnerBanner = document.getElementById('arenaWinnerBanner');
 const arenaWinnerTitle = document.getElementById('arenaWinnerTitle');
 const arenaWinnerDesc = document.getElementById('arenaWinnerDesc');
+const arenaP1Accuracy = document.getElementById('arenaP1Accuracy');
+const arenaP2Accuracy = document.getElementById('arenaP2Accuracy');
 const arenaRematchBtn = document.getElementById('arenaRematchBtn');
 const arenaExitBtn = document.getElementById('arenaExitBtn');
 
@@ -836,6 +850,13 @@ let arenaStartTime = 0;
 let arenaElapsedTime = 0;
 let arenaRafId = null;
 let arenaStopped = false;
+let arenaRunning = false;
+let currentArenaMode = 'normal'; // 'timi' veya 'normal'
+let myModeChoice = null;
+let opponentModeChoice = null;
+let pendingModeMatch = null;
+let arenaAutoStartInterval = null;
+let arenaAutoStartRemaining = 10;
 
 // Hybrid Realtime Channel: BroadcastChannel (local) + Global MQTT Cloud WebSocket Broker
 const vsChannel = new BroadcastChannel('chrono_pulse_vs_channel');
@@ -921,8 +942,14 @@ function handleRealtimeMessage(data) {
 
     case 'INVITE_ACCEPTED':
       if (data.toUser && data.toUser.toLowerCase() === currentUsername.toLowerCase()) {
-        vsModal.classList.add('hidden');
-        launchArenaMatch(data.matchId, currentUsername, data.fromUsername, data.targetTime);
+        openModeSelectionModal(data.matchId, currentUsername, data.fromUsername, data.targetTime);
+      }
+      break;
+
+    case 'MODE_SELECT':
+      if (pendingModeMatch && pendingModeMatch.matchId === data.matchId) {
+        opponentModeChoice = data.mode;
+        evaluateModeResolution();
       }
       break;
 
@@ -937,7 +964,7 @@ function handleRealtimeMessage(data) {
 
     case 'ARENA_REMATCH':
       if (currentMatch && currentMatch.matchId === data.matchId) {
-        launchArenaMatch(data.newMatchId, currentMatch.p1, currentMatch.p2, data.targetTime);
+        openModeSelectionModal(data.newMatchId, currentMatch.p1, currentMatch.p2, data.targetTime);
       }
       break;
   }
@@ -1096,7 +1123,7 @@ acceptInviteBtn.addEventListener('click', () => {
     matchId: matchId
   });
 
-  launchArenaMatch(matchId, currentUsername, currentInvite.fromUsername, currentInvite.targetTime);
+  openModeSelectionModal(matchId, currentUsername, currentInvite.fromUsername, currentInvite.targetTime);
   currentInvite = null;
 });
 
@@ -1113,9 +1140,107 @@ declineInviteBtn.addEventListener('click', () => {
   sounds.playBeep(220, 'sine', 0.1, 0.2);
 });
 
-function launchArenaMatch(matchId, p1, p2, targetTime) {
+/* ==========================================================================
+   OYUN MODU SEÇİMİ (TİMİ MOD - NO LOOK / NORMAL MOD - LOOK)
+   ========================================================================== */
+
+function openModeSelectionModal(matchId, p1, p2, targetTime) {
+  vsModal.classList.add('hidden');
+  incomingInviteModal.classList.add('hidden');
+  vsArenaModal.classList.add('hidden');
+  modeSelectModal.classList.remove('hidden');
+
+  myModeChoice = null;
+  opponentModeChoice = null;
+  pendingModeMatch = { matchId, p1, p2, targetTime };
+
+  modeStatusText.textContent = 'Oyun modunu seçin (TİMİ MOD veya NORMAL MOD)...';
+  modeStatusText.className = 'mt-5 text-xs font-semibold text-slate-400 animate-pulse';
+
+  selectTimiModeBtn.disabled = false;
+  selectNormalModeBtn.disabled = false;
+  selectTimiModeBtn.classList.remove('ring-4', 'ring-amber-400', 'opacity-50');
+  selectNormalModeBtn.classList.remove('ring-4', 'ring-brand-500', 'opacity-50');
+  sounds.playChallengeInvite();
+}
+
+function chooseMode(mode) {
+  if (myModeChoice || !pendingModeMatch) return;
+  myModeChoice = mode;
+  sounds.playBeep(550, 'triangle', 0.1, 0.2);
+
+  if (mode === 'timi') {
+    selectTimiModeBtn.classList.add('ring-4', 'ring-amber-400');
+    selectNormalModeBtn.classList.add('opacity-50');
+  } else {
+    selectNormalModeBtn.classList.add('ring-4', 'ring-brand-500');
+    selectTimiModeBtn.classList.add('opacity-50');
+  }
+
+  broadcast({
+    type: 'MODE_SELECT',
+    matchId: pendingModeMatch.matchId,
+    fromUsername: currentUsername,
+    mode: mode
+  });
+
+  evaluateModeResolution();
+}
+
+selectTimiModeBtn.addEventListener('click', () => chooseMode('timi'));
+selectNormalModeBtn.addEventListener('click', () => chooseMode('normal'));
+
+function evaluateModeResolution() {
+  if (!pendingModeMatch) return;
+
+  if (myModeChoice && !opponentModeChoice) {
+    modeStatusText.textContent = `Seçiminiz: ${myModeChoice === 'timi' ? 'TİMİ MOD (NO LOOK)' : 'NORMAL MOD (LOOK)'}. Rakibin seçimi bekleniyor...`;
+    return;
+  }
+
+  if (!myModeChoice && opponentModeChoice) {
+    modeStatusText.textContent = 'Rakip seçimini yaptı! Lütfen siz de bir mod seçin...';
+    return;
+  }
+
+  if (myModeChoice && opponentModeChoice) {
+    selectTimiModeBtn.disabled = true;
+    selectNormalModeBtn.disabled = true;
+
+    let finalMode = '';
+    let resolutionReason = '';
+
+    if (myModeChoice === opponentModeChoice) {
+      finalMode = myModeChoice;
+      resolutionReason = `İki oyuncu da aynı modu seçti: ${finalMode === 'timi' ? 'TİMİ MOD (NO LOOK)' : 'NORMAL MOD (LOOK)'}!`;
+    } else {
+      // İki oyuncu farklı seçim yaptı: Her iki tarafta da aynı sonucu veren deterministik rastgele seçim
+      const sumCodes = pendingModeMatch.matchId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+      finalMode = (sumCodes % 2 === 0) ? 'timi' : 'normal';
+      resolutionReason = `Farklı modlar seçildi! Sistem rastgele belirledi: ${finalMode === 'timi' ? 'TİMİ MOD (NO LOOK)' : 'NORMAL MOD (LOOK)'}!`;
+    }
+
+    modeStatusText.textContent = `${resolutionReason} Arena başlatılıyor...`;
+    modeStatusText.className = 'mt-5 text-xs font-bold text-amber-300 animate-bounce';
+
+    const matchToLaunch = pendingModeMatch;
+    setTimeout(() => {
+      modeSelectModal.classList.add('hidden');
+      launchArenaMatch(matchToLaunch.matchId, matchToLaunch.p1, matchToLaunch.p2, matchToLaunch.targetTime, finalMode);
+      pendingModeMatch = null;
+    }, 1500);
+  }
+}
+
+/* ==========================================================================
+   1v1 ARENA VE 10 SANİYE KURALI
+   ========================================================================== */
+
+function launchArenaMatch(matchId, p1, p2, targetTime, chosenMode) {
   isArenaActive = true;
   arenaStopped = false;
+  arenaRunning = false;
+  currentArenaMode = chosenMode || 'normal';
   arenaWinnerBanner.classList.add('hidden');
 
   currentMatch = {
@@ -1123,10 +1248,21 @@ function launchArenaMatch(matchId, p1, p2, targetTime) {
     p1: p1,
     p2: p2,
     targetTime: targetTime,
+    mode: currentArenaMode,
     p1Result: null,
     p2Result: null
   };
 
+  // Mod Rozeti Güncellemesi
+  if (currentArenaMode === 'timi') {
+    arenaActiveModeBadge.textContent = '🙈 TİMİ MOD (NO LOOK)';
+    arenaActiveModeBadge.className = 'text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/40';
+  } else {
+    arenaActiveModeBadge.textContent = '👁️ NORMAL MOD (LOOK)';
+    arenaActiveModeBadge.className = 'text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-brand-500/20 text-brand-400 border border-brand-500/40';
+  }
+
+  // Hedef Zaman Formatlama
   let tFormatted = '';
   if (targetTime.unit === 'second') {
     const tm = String(Math.floor(targetTime.main / 60)).padStart(2, '0');
@@ -1144,10 +1280,19 @@ function launchArenaMatch(matchId, p1, p2, targetTime) {
   arenaP2Time.textContent = '00.00.00';
   arenaP1Diff.textContent = 'Hazırlanıyor...';
   arenaP2Diff.textContent = 'Hazırlanıyor...';
+
   arenaActionBtn.disabled = true;
+  arenaActionBtn.className = 'w-full py-5 rounded-2xl font-black text-xl tracking-wider uppercase flex items-center justify-center space-x-3 transition-all transform active:scale-95 shadow-xl select-none bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 hover:brightness-110';
+  arenaBtnText.textContent = 'BAŞLAT';
+  arenaBtnIcon.setAttribute('data-lucide', 'play');
+
+  arenaAutoStartNotice.classList.add('hidden');
+  if (arenaAutoStartInterval) clearInterval(arenaAutoStartInterval);
 
   vsArenaModal.classList.remove('hidden');
+  lucide.createIcons();
 
+  // 3-2-1 Geri Sayım
   arenaCountdownOverlay.classList.remove('hidden');
   let count = 3;
   arenaCountdownNumber.textContent = count;
@@ -1160,78 +1305,147 @@ function launchArenaMatch(matchId, p1, p2, targetTime) {
       arenaCountdownNumber.textContent = count;
       sounds.playBeep(440, 'triangle', 0.15, 0.3);
     } else if (count === 0) {
-      arenaCountdownNumber.textContent = 'BAŞLA!';
+      arenaCountdownNumber.textContent = 'HAZIR!';
       arenaCountdownNumber.className = 'text-7xl sm:text-8xl font-black text-brand-glow animate-pulse';
       sounds.playStart();
     } else {
       clearInterval(cInterval);
       arenaCountdownOverlay.classList.add('hidden');
-      startArenaStopwatch();
+      setupArenaReadyState();
     }
   }, 1000);
 }
 
-function updateArenaTimer() {
-  arenaElapsedTime = performance.now() - arenaStartTime;
-  const { formatted } = get2DigitTime(arenaElapsedTime);
-  if (!arenaStopped) {
-    arenaP1Time.textContent = formatted;
-  }
+function setupArenaReadyState() {
+  arenaActionBtn.disabled = false;
+  arenaBtnText.textContent = 'BAŞLAT';
+  arenaBtnIcon.setAttribute('data-lucide', 'play');
+  arenaP1Diff.textContent = 'Başlatmayı bekliyor...';
+  lucide.createIcons();
+
+  // 10 Saniye Otomatik Başlama Kuralı
+  arenaAutoStartNotice.classList.remove('hidden');
+  arenaAutoStartRemaining = 10;
+  arenaAutoStartTimer.textContent = arenaAutoStartRemaining;
+
+  if (arenaAutoStartInterval) clearInterval(arenaAutoStartInterval);
+  arenaAutoStartInterval = setInterval(() => {
+    arenaAutoStartRemaining--;
+    arenaAutoStartTimer.textContent = arenaAutoStartRemaining;
+    if (arenaAutoStartRemaining <= 0) {
+      clearInterval(arenaAutoStartInterval);
+      startArenaRunning();
+    }
+  }, 1000);
+}
+
+function startArenaRunning() {
+  if (arenaRunning || arenaStopped) return;
+  if (arenaAutoStartInterval) clearInterval(arenaAutoStartInterval);
+  arenaAutoStartNotice.classList.add('hidden');
+
+  arenaRunning = true;
+  arenaStartTime = performance.now();
+  arenaActionBtn.disabled = false;
+  arenaBtnText.textContent = 'DURDUR';
+  arenaBtnIcon.setAttribute('data-lucide', 'square');
+  arenaActionBtn.className = 'w-full py-5 rounded-2xl font-black text-xl tracking-wider uppercase flex items-center justify-center space-x-3 transition-all transform active:scale-95 shadow-xl select-none bg-gradient-to-r from-red-500 to-rose-600 text-white hover:brightness-110';
+  arenaP1Diff.textContent = currentArenaMode === 'timi' ? 'Sayıyor (İçinden Say!)...' : 'Sayıyor...';
+  sounds.playStart();
+  lucide.createIcons();
+
   arenaRafId = requestAnimationFrame(updateArenaTimer);
 }
 
-function startArenaStopwatch() {
-  arenaActionBtn.disabled = false;
-  arenaStartTime = performance.now();
+function updateArenaTimer() {
+  if (!arenaRunning || arenaStopped) return;
+  arenaElapsedTime = performance.now() - arenaStartTime;
+  const { formatted } = get2DigitTime(arenaElapsedTime);
+
+  // TİMİ MOD (NO LOOK) Kontrolü: Kullanıcı saniyeyi göremez, ??.??.?? gösterilir!
+  if (currentArenaMode === 'timi') {
+    arenaP1Time.textContent = '??.??.??';
+  } else {
+    arenaP1Time.textContent = formatted;
+  }
+
   arenaRafId = requestAnimationFrame(updateArenaTimer);
 }
 
 function handleArenaAction() {
-  if (arenaStopped || !isArenaActive) return;
-  arenaStopped = true;
-  arenaActionBtn.disabled = true;
-  sounds.playStop();
+  if (!isArenaActive) return;
 
-  const finalElapsed = performance.now() - arenaStartTime;
-  const { m, s, ms2, formatted } = get2DigitTime(finalElapsed);
-  arenaP1Time.textContent = formatted;
-
-  const target = currentMatch.targetTime;
-  let diff = 0;
-  let diffText = '';
-
-  if (target.unit === 'second') {
-    const actualUnits = (m * 60 + s) * 100 + ms2;
-    const targetUnits = target.main * 100 + (target.sub % 100);
-    const rawDiff = actualUnits - targetUnits;
-    diff = Math.abs(rawDiff);
-    const sign = rawDiff >= 0 ? '+' : '-';
-    diffText = `${sign}${diff} ms`;
-  } else if (target.unit === 'millisecond') {
-    const actualUnits = (m * 60 + s) * 100 + ms2;
-    const targetUnits = target.main;
-    const rawDiff = actualUnits - targetUnits;
-    diff = Math.abs(rawDiff);
-    const sign = rawDiff >= 0 ? '+' : '-';
-    diffText = `${sign}${diff} ms`;
+  // Kullanıcı henüz başlatmadıysa (10 sn bekleme süresindeyse): BAŞLAT
+  if (!arenaRunning && !arenaStopped) {
+    startArenaRunning();
+    return;
   }
 
-  arenaP1Diff.textContent = `Fark: ${diffText}`;
+  // Kronometre çalışıyorsa: DURDUR
+  if (arenaRunning && !arenaStopped) {
+    arenaStopped = true;
+    arenaRunning = false;
+    cancelAnimationFrame(arenaRafId);
+    if (arenaAutoStartInterval) clearInterval(arenaAutoStartInterval);
 
-  currentMatch.p1Result = {
-    elapsed: finalElapsed,
-    formatted: formatted,
-    diff: diff,
-    diffText: diffText
-  };
+    arenaActionBtn.disabled = true;
+    arenaActionBtn.className = 'w-full py-5 rounded-2xl font-black text-xl tracking-wider uppercase flex items-center justify-center space-x-3 shadow-xl select-none bg-slate-800 text-slate-500 cursor-not-allowed';
+    arenaBtnText.textContent = 'DURDURULDU';
+    arenaBtnIcon.setAttribute('data-lucide', 'check');
+    lucide.createIcons();
+    sounds.playStop();
 
-  broadcast({
-    type: 'ARENA_STOP',
-    matchId: currentMatch.matchId,
-    result: currentMatch.p1Result
-  });
+    const finalElapsed = performance.now() - arenaStartTime;
+    const { m, s, ms2, formatted } = get2DigitTime(finalElapsed);
 
-  checkArenaOutcome();
+    // TİMİ modunda bile durdurulduğu an gerçek süre ortaya çıkar!
+    arenaP1Time.textContent = formatted;
+
+    const target = currentMatch.targetTime;
+    let diff = 0;
+    let diffText = '';
+    let targetCentiseconds = 0;
+
+    if (target.unit === 'second') {
+      const actualUnits = (m * 60 + s) * 100 + ms2;
+      const targetUnits = target.main * 100 + (target.sub % 100);
+      targetCentiseconds = targetUnits;
+      const rawDiff = actualUnits - targetUnits;
+      diff = Math.abs(rawDiff);
+      const sign = rawDiff >= 0 ? '+' : '-';
+      diffText = `${sign}${diff} ms`;
+    } else if (target.unit === 'millisecond') {
+      const actualUnits = (m * 60 + s) * 100 + ms2;
+      const targetUnits = target.main;
+      targetCentiseconds = targetUnits;
+      const rawDiff = actualUnits - targetUnits;
+      diff = Math.abs(rawDiff);
+      const sign = rawDiff >= 0 ? '+' : '-';
+      diffText = `${sign}${diff} ms`;
+    }
+
+    arenaP1Diff.textContent = `Fark: ${diffText}`;
+
+    // Başarı Oranı (%) Hesaplama
+    const baseUnits = Math.max(targetCentiseconds, 10);
+    const accuracy = Math.max(0, 100 - ((diff / baseUnits) * 100)).toFixed(1);
+
+    currentMatch.p1Result = {
+      elapsed: finalElapsed,
+      formatted: formatted,
+      diff: diff,
+      diffText: diffText,
+      accuracy: accuracy
+    };
+
+    broadcast({
+      type: 'ARENA_STOP',
+      matchId: currentMatch.matchId,
+      result: currentMatch.p1Result
+    });
+
+    checkArenaOutcome();
+  }
 }
 
 arenaActionBtn.addEventListener('click', handleArenaAction);
@@ -1240,32 +1454,36 @@ function checkArenaOutcome() {
   if (!currentMatch || !currentMatch.p1Result || !currentMatch.p2Result) return;
 
   cancelAnimationFrame(arenaRafId);
-  const p1Diff = currentMatch.p1Result.diff;
-  const p2Diff = currentMatch.p2Result.diff;
+  const p1 = currentMatch.p1Result;
+  const p2 = currentMatch.p2Result;
 
   arenaWinnerBanner.classList.remove('hidden');
 
-  if (p1Diff < p2Diff) {
+  arenaP1Accuracy.textContent = `%${p1.accuracy}`;
+  arenaP2Accuracy.textContent = `%${p2.accuracy}`;
+
+  if (p1.diff < p2.diff) {
     arenaWinnerTitle.textContent = `🏆 ${currentMatch.p1} KAZANDI!`;
     arenaWinnerTitle.className = 'text-2xl sm:text-3xl font-black text-yellow-400 drop-shadow-lg';
-    arenaWinnerDesc.textContent = `Tebrikler! Hedefe ${p1Diff} ms farkla daha çok yaklaştınız (Rakip: ${p2Diff} ms).`;
+    arenaWinnerDesc.textContent = `Tebrikler! Hedefe ${p1.diff} ms farkla (${p1.accuracy}% başarı) daha çok yaklaştınız (Rakip: ${p2.diff} ms, %${p2.accuracy}).`;
     sounds.playMegaVictory();
     triggerMegaConfetti();
-  } else if (p2Diff < p1Diff) {
+  } else if (p2.diff < p1.diff) {
     arenaWinnerTitle.textContent = `💀 ${currentMatch.p2} KAZANDI!`;
     arenaWinnerTitle.className = 'text-2xl sm:text-3xl font-black text-rose-400 drop-shadow-lg';
-    arenaWinnerDesc.textContent = `Rakip ${p2Diff} ms farkla daha hızlı davrandı (Siz: ${p1Diff} ms).`;
+    arenaWinnerDesc.textContent = `Rakip ${p2.diff} ms farkla (${p2.accuracy}% başarı) kazandı (Siz: ${p1.diff} ms, %${p1.accuracy}).`;
     sounds.playBeep(220, 'sawtooth', 0.3, 0.2);
   } else {
     arenaWinnerTitle.textContent = `🤝 BERABERE!`;
     arenaWinnerTitle.className = 'text-2xl sm:text-3xl font-black text-cyber-neonBlue drop-shadow-lg';
-    arenaWinnerDesc.textContent = `İki oyuncu da tam olarak ${p1Diff} ms fark ile durdurdu!`;
+    arenaWinnerDesc.textContent = `İki oyuncu da tam olarak ${p1.diff} ms fark (%${p1.accuracy}) ile durdurdu!`;
     sounds.playGood();
   }
 }
 
 arenaExitBtn.addEventListener('click', () => {
   cancelAnimationFrame(arenaRafId);
+  if (arenaAutoStartInterval) clearInterval(arenaAutoStartInterval);
   isArenaActive = false;
   vsArenaModal.classList.add('hidden');
 });
@@ -1279,5 +1497,5 @@ arenaRematchBtn.addEventListener('click', () => {
     newMatchId: newMatchId,
     targetTime: newRandomTarget
   });
-  launchArenaMatch(newMatchId, currentMatch.p1, currentMatch.p2, newRandomTarget);
+  openModeSelectionModal(newMatchId, currentMatch.p1, currentMatch.p2, newRandomTarget);
 });
