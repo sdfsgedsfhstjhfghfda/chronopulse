@@ -454,9 +454,9 @@
     </div>
   </div>
 
-  <!-- ==================== MODAL: OYUN MODUNU SEÇ (TİMİ MOD vs NORMAL MOD) ==================== -->
+  <!-- ==================== MODAL: OYUN MODUNU SEÇ (TİMİ MOD vs NORMAL MOD vs TAHMİN ET) ==================== -->
   <div id="modeSelectModal" class="fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-xl flex items-center justify-center p-4 hidden animate-fadeIn">
-    <div class="bg-cyber-card border-2 border-amber-400/60 rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl relative text-center">
+    <div class="bg-cyber-card border-2 border-amber-400/60 rounded-3xl max-w-2xl w-full p-6 sm:p-8 shadow-2xl relative text-center">
       
       <div class="w-14 h-14 mx-auto rounded-2xl bg-amber-500/20 border border-amber-400/40 flex items-center justify-center text-3xl mb-3 shadow-lg shadow-amber-500/20">
         🎯
@@ -466,40 +466,57 @@
       <h3 class="text-2xl font-black text-white mt-1">OYUN MODUNU SEÇİN</h3>
       <p class="text-xs text-slate-400 mt-1">İki oyuncu da mod seçer. Farklı seçim yapılırsa sistem rastgele birini belirler!</p>
 
-      <!-- Mode Cards -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
+      <!-- Mode Cards (3 Options) -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-6">
         
         <!-- Option 1: TİMİ MOD (NO LOOK) -->
-        <button id="selectTimiModeBtn" class="group/mode p-5 rounded-2xl bg-slate-900 border-2 border-slate-700 hover:border-amber-400 hover:bg-amber-500/10 text-left transition-all relative overflow-hidden flex flex-col justify-between">
+        <button id="selectTimiModeBtn" class="group/mode p-4 rounded-2xl bg-slate-900 border-2 border-slate-700 hover:border-amber-400 hover:bg-amber-500/10 text-left transition-all relative overflow-hidden flex flex-col justify-between">
           <div>
             <div class="flex items-center justify-between mb-2">
               <span class="text-2xl">🙈</span>
-              <span class="text-[10px] font-black px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30">ZOR MOD</span>
+              <span class="text-[9px] font-black px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30">ZOR</span>
             </div>
-            <h4 class="font-black text-base text-white group-hover/mode:text-amber-300">TİMİ MOD<br><span class="text-xs text-amber-400 font-mono">(NO LOOK)</span></h4>
-            <p class="text-[11px] text-slate-400 mt-2 leading-relaxed">
-              Kronometre sayarken <strong>ekran gizlenir (??.??.??)</strong>! Saniyeyi görmeden içinden sayarak durdurmalısın.
+            <h4 class="font-black text-sm text-white group-hover/mode:text-amber-300">TİMİ MOD<br><span class="text-[11px] text-amber-400 font-mono">(NO LOOK)</span></h4>
+            <p class="text-[10px] text-slate-400 mt-1.5 leading-relaxed">
+              Sayaç çalışırken <strong>gizlenir (??.??.??)</strong>! Kendin sayıp durdurmalısın.
             </p>
           </div>
-          <div class="mt-4 pt-3 border-t border-slate-800 text-center text-xs font-bold text-amber-400 group-hover/mode:underline">
-            BU MODU SEÇ ➔
+          <div class="mt-3 pt-2 border-t border-slate-800 text-center text-[11px] font-bold text-amber-400 group-hover/mode:underline">
+            SEÇ ➔
           </div>
         </button>
 
         <!-- Option 2: NORMAL MOD (LOOK) -->
-        <button id="selectNormalModeBtn" class="group/mode p-5 rounded-2xl bg-slate-900 border-2 border-slate-700 hover:border-brand-500 hover:bg-brand-500/10 text-left transition-all relative overflow-hidden flex flex-col justify-between">
+        <button id="selectNormalModeBtn" class="group/mode p-4 rounded-2xl bg-slate-900 border-2 border-slate-700 hover:border-brand-500 hover:bg-brand-500/10 text-left transition-all relative overflow-hidden flex flex-col justify-between">
           <div>
             <div class="flex items-center justify-between mb-2">
               <span class="text-2xl">👁️</span>
-              <span class="text-[10px] font-black px-2 py-0.5 rounded-full bg-brand-500/20 text-brand-400 border border-brand-500/30">KLASİK</span>
+              <span class="text-[9px] font-black px-1.5 py-0.5 rounded-full bg-brand-500/20 text-brand-400 border border-brand-500/30">KLASİK</span>
             </div>
-            <h4 class="font-black text-base text-white group-hover/mode:text-brand-300">NORMAL MOD<br><span class="text-xs text-brand-400 font-mono">(LOOK)</span></h4>
-            <p class="text-[11px] text-slate-400 mt-2 leading-relaxed">
-              Kronometre sayarken <strong>saniye görünür</strong>. Normal hızda bakarak tam hedefte durdurabilirsin.
+            <h4 class="font-black text-sm text-white group-hover/mode:text-brand-300">NORMAL MOD<br><span class="text-[11px] text-brand-400 font-mono">(LOOK)</span></h4>
+            <p class="text-[10px] text-slate-400 mt-1.5 leading-relaxed">
+              Sayaç sayarken <strong>saniye görünür</strong>. Bakarak tam hedefte durdurabilirsin.
             </p>
           </div>
-          <div class="mt-4 pt-3 border-t border-slate-800 text-center text-xs font-bold text-brand-400 group-hover/mode:underline">
-            BU MODU SEÇ ➔
+          <div class="mt-3 pt-2 border-t border-slate-800 text-center text-[11px] font-bold text-brand-400 group-hover/mode:underline">
+            SEÇ ➔
+          </div>
+        </button>
+
+        <!-- Option 3: TAHMİN ET (NEW!) -->
+        <button id="selectGuessModeBtn" class="group/mode p-4 rounded-2xl bg-slate-900 border-2 border-slate-700 hover:border-purple-500 hover:bg-purple-500/10 text-left transition-all relative overflow-hidden flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-2xl">🧠</span>
+              <span class="text-[9px] font-black px-1.5 py-0.5 rounded-full bg-purple-500/20 text-purple-400 border border-purple-500/30">YENİ MOD</span>
+            </div>
+            <h4 class="font-black text-sm text-white group-hover/mode:text-purple-300">TAHMİN ET<br><span class="text-[11px] text-purple-400 font-mono">(Rastgele Durur)</span></h4>
+            <p class="text-[10px] text-slate-400 mt-1.5 leading-relaxed">
+              Sayaç gizlice başlar ve <strong>rastgele bir anda durur</strong>! Sayıp tahminini yaz, en yakın olan kazanır.
+            </p>
+          </div>
+          <div class="mt-3 pt-2 border-t border-slate-800 text-center text-[11px] font-bold text-purple-400 group-hover/mode:underline">
+            SEÇ ➔
           </div>
         </button>
 
@@ -526,7 +543,7 @@
             🙈 TİMİ MOD (NO LOOK)
           </span>
         </div>
-        <div class="flex items-center space-x-2 bg-slate-900 border border-slate-800 px-3 py-1 rounded-lg text-xs">
+        <div id="arenaTargetContainer" class="flex items-center space-x-2 bg-slate-900 border border-slate-800 px-3 py-1 rounded-lg text-xs">
           <span class="text-slate-400">Rastgele Hedef:</span>
           <strong id="arenaTargetLabel" class="text-brand-glow font-mono">00.06.41</strong>
         </div>
@@ -538,47 +555,110 @@
         <span id="arenaCountdownLabel" class="text-sm font-bold text-slate-400 uppercase tracking-widest mt-4">Hazırlanın...</span>
       </div>
 
-      <!-- Players Battle Grid -->
-      <div class="w-full grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-        <!-- Player 1 (You) -->
-        <div class="bg-slate-900/90 border-2 border-brand-500/40 rounded-2xl p-5 text-center relative overflow-hidden">
-          <div class="flex items-center justify-center space-x-2 mb-2">
-            <span class="w-2.5 h-2.5 rounded-full bg-brand-500"></span>
-            <h4 id="arenaP1Name" class="font-black text-lg text-white font-mono">SİZ</h4>
+      <!-- SECTION A: Normal / Timi Modu İçin İki Oyunculu Grid -->
+      <div id="arenaStandardSection" class="w-full">
+        <div class="w-full grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+          <!-- Player 1 (You) -->
+          <div class="bg-slate-900/90 border-2 border-brand-500/40 rounded-2xl p-5 text-center relative overflow-hidden">
+            <div class="flex items-center justify-center space-x-2 mb-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-brand-500"></span>
+              <h4 id="arenaP1Name" class="font-black text-lg text-white font-mono">SİZ</h4>
+            </div>
+            
+            <!-- Stopwatch Display for P1 -->
+            <div id="arenaP1Time" class="text-4xl sm:text-5xl font-mono font-black text-white tracking-tight my-2">00.00.00</div>
+            <div id="arenaP1Diff" class="text-xs font-bold text-slate-400 font-mono">Hazır</div>
           </div>
-          
-          <!-- Stopwatch Display for P1 -->
-          <div id="arenaP1Time" class="text-4xl sm:text-5xl font-mono font-black text-white tracking-tight my-2">00.00.00</div>
-          <div id="arenaP1Diff" class="text-xs font-bold text-slate-400 font-mono">Hazır</div>
+
+          <!-- Player 2 (Opponent) -->
+          <div class="bg-slate-900/90 border-2 border-red-500/40 rounded-2xl p-5 text-center relative overflow-hidden">
+            <div class="flex items-center justify-center space-x-2 mb-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+              <h4 id="arenaP2Name" class="font-black text-lg text-white font-mono">RAKİP</h4>
+            </div>
+            
+            <!-- Stopwatch Display for P2 -->
+            <div id="arenaP2Time" class="text-4xl sm:text-5xl font-mono font-black text-white tracking-tight my-2">00.00.00</div>
+            <div id="arenaP2Diff" class="text-xs font-bold text-slate-400 font-mono">Bekleniyor...</div>
+          </div>
         </div>
 
-        <!-- Player 2 (Opponent) -->
-        <div class="bg-slate-900/90 border-2 border-red-500/40 rounded-2xl p-5 text-center relative overflow-hidden">
-          <div class="flex items-center justify-center space-x-2 mb-2">
-            <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
-            <h4 id="arenaP2Name" class="font-black text-lg text-white font-mono">RAKİP</h4>
+        <!-- 10-Second Auto-Start Countdown & Action Area -->
+        <div class="w-full max-w-md mx-auto flex flex-col items-center space-y-3">
+          <!-- 10s Timer Warning -->
+          <div id="arenaAutoStartNotice" class="text-xs font-semibold text-amber-400 flex items-center space-x-1.5 animate-pulse">
+            <i data-lucide="timer" class="w-3.5 h-3.5"></i>
+            <span>Kendiniz başlatın veya <strong id="arenaAutoStartTimer" class="text-white font-mono text-sm">10</strong> sn sonra otomatik başlar!</span>
           </div>
-          
-          <!-- Stopwatch Display for P2 -->
-          <div id="arenaP2Time" class="text-4xl sm:text-5xl font-mono font-black text-white tracking-tight my-2">00.00.00</div>
-          <div id="arenaP2Diff" class="text-xs font-bold text-slate-400 font-mono">Bekleniyor...</div>
+
+          <!-- Big Dual-Action Button (BAŞLAT / DURDUR) -->
+          <button id="arenaActionBtn" class="w-full py-5 rounded-2xl font-black text-xl tracking-wider uppercase flex items-center justify-center space-x-3 transition-all transform active:scale-95 shadow-xl select-none bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 hover:brightness-110">
+            <i data-lucide="play" id="arenaBtnIcon" class="w-6 h-6 fill-current"></i>
+            <span id="arenaBtnText">BAŞLAT</span>
+          </button>
         </div>
       </div>
 
-      <!-- 10-Second Auto-Start Countdown & Action Area -->
-      <div class="w-full max-w-md flex flex-col items-center space-y-3">
-        
-        <!-- 10s Timer Warning -->
-        <div id="arenaAutoStartNotice" class="text-xs font-semibold text-amber-400 flex items-center space-x-1.5 animate-pulse">
-          <i data-lucide="timer" class="w-3.5 h-3.5"></i>
-          <span>Kendiniz başlatın veya <strong id="arenaAutoStartTimer" class="text-white font-mono text-sm">10</strong> sn sonra otomatik başlar!</span>
+      <!-- SECTION B: "TAHMİN ET" MODU İÇİN ÖZEL TEK SAYAÇ & TAHMİN ALANI -->
+      <div id="arenaGuessSection" class="w-full hidden flex flex-col items-center">
+        <!-- Oyuncular Üst Barı -->
+        <div class="flex items-center justify-center space-x-8 mb-4 text-xs font-mono">
+          <span class="flex items-center space-x-1.5 text-brand-400 font-bold">
+            <span class="w-2 h-2 rounded-full bg-brand-500"></span>
+            <span id="guessP1Header">SİZ</span>
+          </span>
+          <span class="text-slate-600 font-black">VS</span>
+          <span class="flex items-center space-x-1.5 text-red-400 font-bold">
+            <span class="w-2 h-2 rounded-full bg-red-500"></span>
+            <span id="guessP2Header">RAKİP</span>
+          </span>
         </div>
 
-        <!-- Big Dual-Action Button (BAŞLAT / DURDUR) -->
-        <button id="arenaActionBtn" class="w-full py-5 rounded-2xl font-black text-xl tracking-wider uppercase flex items-center justify-center space-x-3 transition-all transform active:scale-95 shadow-xl select-none bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 hover:brightness-110">
-          <i data-lucide="play" id="arenaBtnIcon" class="w-6 h-6 fill-current"></i>
-          <span id="arenaBtnText">BAŞLAT</span>
-        </button>
+        <!-- Tek Ortak Sayaç Kutusu (Kullanıcı Sayacı Asla Göremez) -->
+        <div class="w-full max-w-lg bg-gradient-to-b from-slate-900 to-slate-950 border-2 border-purple-500/50 rounded-3xl p-6 sm:p-8 text-center shadow-2xl relative overflow-hidden">
+          <div id="guessRadarEffect" class="absolute inset-0 bg-purple-500/5 animate-pulse pointer-events-none"></div>
+          
+          <span class="text-[11px] uppercase font-bold tracking-widest text-purple-400 block mb-2">ORTAK GİZLİ SAYAÇ</span>
+          
+          <!-- Maskeli Sayaç Ekranı -->
+          <div id="guessMysteryDisplay" class="font-mono text-5xl sm:text-6xl font-black text-purple-300 tracking-tight my-3">
+            ??.??.??
+          </div>
+          
+          <p id="guessStatusNotice" class="text-xs sm:text-sm font-semibold text-slate-300 mt-2 animate-pulse">
+            ⏳ Sayaç gizlice sayıyor... İçinden dikkatle say!
+          </p>
+        </div>
+
+        <!-- Sayaç Durunca Açılan "TAHMİNİNİ YAZ" Alanı -->
+        <div id="guessInputBox" class="w-full max-w-md mt-6 bg-slate-900/90 border border-slate-700/80 rounded-2xl p-5 shadow-xl hidden animate-bounceIn">
+          <div class="text-center mb-4">
+            <span class="text-2xl">🛑</span>
+            <h4 class="font-black text-base text-white mt-1">SAYAÇ DURDU! TAHMİNİNİ YAZ</h4>
+            <p class="text-[11px] text-slate-400 mt-0.5">Sayaç kaçıncı saniyede durdu? İçinden saydığın süreyi gir:</p>
+          </div>
+
+          <div class="flex items-center justify-center space-x-2 mb-4">
+            <div class="flex flex-col items-center">
+              <label class="text-[10px] font-bold text-slate-400 uppercase mb-1">Saniye</label>
+              <input type="number" id="guessInputSec" min="0" max="99" placeholder="0" class="w-20 bg-slate-950 border-2 border-purple-500/60 rounded-xl px-2 py-2.5 font-mono font-bold text-xl text-white text-center focus:border-purple-400 focus:outline-none shadow-inner">
+            </div>
+            <span class="font-mono font-black text-2xl text-purple-400 mt-4">.</span>
+            <div class="flex flex-col items-center">
+              <label class="text-[10px] font-bold text-slate-400 uppercase mb-1">Salise / ms</label>
+              <input type="number" id="guessInputMs" min="0" max="99" placeholder="00" class="w-20 bg-slate-950 border-2 border-purple-500/60 rounded-xl px-2 py-2.5 font-mono font-bold text-xl text-white text-center focus:border-purple-400 focus:outline-none shadow-inner">
+            </div>
+          </div>
+
+          <button id="guessSubmitBtn" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-purple-600 via-pink-600 to-indigo-600 hover:brightness-110 font-black text-sm text-white tracking-wider shadow-lg shadow-purple-500/30 transition-all transform active:scale-95 flex items-center justify-center space-x-2">
+            <i data-lucide="send" class="w-4 h-4"></i>
+            <span>TAHMİNİ GÖNDER 🚀</span>
+          </button>
+
+          <div id="guessWaitingMessage" class="hidden mt-3 text-center text-xs font-semibold text-amber-400 animate-pulse">
+            ✅ Tahmininiz kaydedildi! Rakibin tahmini bekleniyor...
+          </div>
+        </div>
       </div>
 
       <!-- Arena Winner Banner with Accuracy / Success Rate (%) -->
@@ -586,14 +666,14 @@
         <h3 id="arenaWinnerTitle" class="text-2xl sm:text-3xl font-black">🏆 KAZANDINIZ!</h3>
         <p id="arenaWinnerDesc" class="text-xs sm:text-sm text-slate-200 mt-1">Harika zamanlama!</p>
 
-        <!-- Accuracy Cards -->
+        <!-- Accuracy / Details Cards -->
         <div class="grid grid-cols-2 gap-3 max-w-sm mx-auto my-4 text-xs font-mono">
           <div class="p-2.5 rounded-xl bg-slate-950/80 border border-slate-800">
-            <span class="text-slate-400 block text-[10px] uppercase">Sizin Başarı Oranınız</span>
+            <span id="arenaP1AccuracyLabel" class="text-slate-400 block text-[10px] uppercase">Sizin Skorunuz</span>
             <strong id="arenaP1Accuracy" class="text-brand-glow text-base font-black">%98.5</strong>
           </div>
           <div class="p-2.5 rounded-xl bg-slate-950/80 border border-slate-800">
-            <span class="text-slate-400 block text-[10px] uppercase">Rakip Başarı Oranı</span>
+            <span id="arenaP2AccuracyLabel" class="text-slate-400 block text-[10px] uppercase">Rakip Skoru</span>
             <strong id="arenaP2Accuracy" class="text-red-400 text-base font-black">%92.1</strong>
           </div>
         </div>

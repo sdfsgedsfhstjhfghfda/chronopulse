@@ -815,14 +815,19 @@ const declineInviteBtn = document.getElementById('declineInviteBtn');
 const modeSelectModal = document.getElementById('modeSelectModal');
 const selectTimiModeBtn = document.getElementById('selectTimiModeBtn');
 const selectNormalModeBtn = document.getElementById('selectNormalModeBtn');
+const selectGuessModeBtn = document.getElementById('selectGuessModeBtn');
 const modeStatusText = document.getElementById('modeStatusText');
 
 // Arena Modal Elements
 const vsArenaModal = document.getElementById('vsArenaModal');
 const arenaActiveModeBadge = document.getElementById('arenaActiveModeBadge');
+const arenaTargetContainer = document.getElementById('arenaTargetContainer');
 const arenaTargetLabel = document.getElementById('arenaTargetLabel');
 const arenaCountdownOverlay = document.getElementById('arenaCountdownOverlay');
 const arenaCountdownNumber = document.getElementById('arenaCountdownNumber');
+
+// Standard Mode Elements (Timi / Normal)
+const arenaStandardSection = document.getElementById('arenaStandardSection');
 const arenaP1Name = document.getElementById('arenaP1Name');
 const arenaP2Name = document.getElementById('arenaP2Name');
 const arenaP1Time = document.getElementById('arenaP1Time');
@@ -834,9 +839,25 @@ const arenaAutoStartTimer = document.getElementById('arenaAutoStartTimer');
 const arenaActionBtn = document.getElementById('arenaActionBtn');
 const arenaBtnIcon = document.getElementById('arenaBtnIcon');
 const arenaBtnText = document.getElementById('arenaBtnText');
+
+// Guess Mode Elements (TAHMİN ET)
+const arenaGuessSection = document.getElementById('arenaGuessSection');
+const guessP1Header = document.getElementById('guessP1Header');
+const guessP2Header = document.getElementById('guessP2Header');
+const guessMysteryDisplay = document.getElementById('guessMysteryDisplay');
+const guessStatusNotice = document.getElementById('guessStatusNotice');
+const guessInputBox = document.getElementById('guessInputBox');
+const guessInputSec = document.getElementById('guessInputSec');
+const guessInputMs = document.getElementById('guessInputMs');
+const guessSubmitBtn = document.getElementById('guessSubmitBtn');
+const guessWaitingMessage = document.getElementById('guessWaitingMessage');
+
+// Winner Banner
 const arenaWinnerBanner = document.getElementById('arenaWinnerBanner');
 const arenaWinnerTitle = document.getElementById('arenaWinnerTitle');
 const arenaWinnerDesc = document.getElementById('arenaWinnerDesc');
+const arenaP1AccuracyLabel = document.getElementById('arenaP1AccuracyLabel');
+const arenaP2AccuracyLabel = document.getElementById('arenaP2AccuracyLabel');
 const arenaP1Accuracy = document.getElementById('arenaP1Accuracy');
 const arenaP2Accuracy = document.getElementById('arenaP2Accuracy');
 const arenaRematchBtn = document.getElementById('arenaRematchBtn');
@@ -851,12 +872,19 @@ let arenaElapsedTime = 0;
 let arenaRafId = null;
 let arenaStopped = false;
 let arenaRunning = false;
-let currentArenaMode = 'normal'; // 'timi' veya 'normal'
+let currentArenaMode = 'normal'; // 'timi', 'normal' veya 'guess'
 let myModeChoice = null;
 let opponentModeChoice = null;
 let pendingModeMatch = null;
 let arenaAutoStartInterval = null;
 let arenaAutoStartRemaining = 10;
+
+// Guess Mode State
+let guessStopDurationMs = 0;
+let guessTimeoutId = null;
+let guessHasStopped = false;
+let myGuess = null;
+let opponentGuess = null;
 
 // Hybrid Realtime Channel: BroadcastChannel (local) + Global MQTT Cloud WebSocket Broker
 const vsChannel = new BroadcastChannel('chrono_pulse_vs_channel');
@@ -950,6 +978,13 @@ function handleRealtimeMessage(data) {
       if (pendingModeMatch && pendingModeMatch.matchId === data.matchId) {
         opponentModeChoice = data.mode;
         evaluateModeResolution();
+      }
+      break;
+
+    case 'GUESS_SUBMIT':
+      if (currentMatch && currentMatch.matchId === data.matchId) {
+        opponentGuess = data.guess;
+        checkGuessOutcome();
       }
       break;
 
@@ -1141,7 +1176,7 @@ declineInviteBtn.addEventListener('click', () => {
 });
 
 /* ==========================================================================
-   OYUN MODU SEÇİMİ (TİMİ MOD - NO LOOK / NORMAL MOD - LOOK)
+   OYUN MODU SEÇİMİ (TİMİ MOD / NORMAL MOD / TAHMİN ET)
    ========================================================================== */
 
 function openModeSelectionModal(matchId, p1, p2, targetTime) {
@@ -1154,13 +1189,17 @@ function openModeSelectionModal(matchId, p1, p2, targetTime) {
   opponentModeChoice = null;
   pendingModeMatch = { matchId, p1, p2, targetTime };
 
-  modeStatusText.textContent = 'Oyun modunu seçin (TİMİ MOD veya NORMAL MOD)...';
+  modeStatusText.textContent = 'Oyun modunu seçin (TİMİ MOD, NORMAL MOD veya TAHMİN ET)...';
   modeStatusText.className = 'mt-5 text-xs font-semibold text-slate-400 animate-pulse';
 
   selectTimiModeBtn.disabled = false;
   selectNormalModeBtn.disabled = false;
+  selectGuessModeBtn.disabled = false;
+
   selectTimiModeBtn.classList.remove('ring-4', 'ring-amber-400', 'opacity-50');
   selectNormalModeBtn.classList.remove('ring-4', 'ring-brand-500', 'opacity-50');
+  selectGuessModeBtn.classList.remove('ring-4', 'ring-purple-500', 'opacity-50');
+
   sounds.playChallengeInvite();
 }
 
@@ -1172,9 +1211,15 @@ function chooseMode(mode) {
   if (mode === 'timi') {
     selectTimiModeBtn.classList.add('ring-4', 'ring-amber-400');
     selectNormalModeBtn.classList.add('opacity-50');
-  } else {
+    selectGuessModeBtn.classList.add('opacity-50');
+  } else if (mode === 'normal') {
     selectNormalModeBtn.classList.add('ring-4', 'ring-brand-500');
     selectTimiModeBtn.classList.add('opacity-50');
+    selectGuessModeBtn.classList.add('opacity-50');
+  } else if (mode === 'guess') {
+    selectGuessModeBtn.classList.add('ring-4', 'ring-purple-500');
+    selectTimiModeBtn.classList.add('opacity-50');
+    selectNormalModeBtn.classList.add('opacity-50');
   }
 
   broadcast({
@@ -1189,12 +1234,20 @@ function chooseMode(mode) {
 
 selectTimiModeBtn.addEventListener('click', () => chooseMode('timi'));
 selectNormalModeBtn.addEventListener('click', () => chooseMode('normal'));
+selectGuessModeBtn.addEventListener('click', () => chooseMode('guess'));
+
+function getModeTitle(m) {
+  if (m === 'timi') return 'TİMİ MOD (NO LOOK)';
+  if (m === 'normal') return 'NORMAL MOD (LOOK)';
+  if (m === 'guess') return 'TAHMİN ET (Rastgele Durur)';
+  return m;
+}
 
 function evaluateModeResolution() {
   if (!pendingModeMatch) return;
 
   if (myModeChoice && !opponentModeChoice) {
-    modeStatusText.textContent = `Seçiminiz: ${myModeChoice === 'timi' ? 'TİMİ MOD (NO LOOK)' : 'NORMAL MOD (LOOK)'}. Rakibin seçimi bekleniyor...`;
+    modeStatusText.textContent = `Seçiminiz: ${getModeTitle(myModeChoice)}. Rakibin seçimi bekleniyor...`;
     return;
   }
 
@@ -1206,18 +1259,20 @@ function evaluateModeResolution() {
   if (myModeChoice && opponentModeChoice) {
     selectTimiModeBtn.disabled = true;
     selectNormalModeBtn.disabled = true;
+    selectGuessModeBtn.disabled = true;
 
     let finalMode = '';
     let resolutionReason = '';
 
     if (myModeChoice === opponentModeChoice) {
       finalMode = myModeChoice;
-      resolutionReason = `İki oyuncu da aynı modu seçti: ${finalMode === 'timi' ? 'TİMİ MOD (NO LOOK)' : 'NORMAL MOD (LOOK)'}!`;
+      resolutionReason = `İki oyuncu da aynı modu seçti: ${getModeTitle(finalMode)}!`;
     } else {
-      // İki oyuncu farklı seçim yaptı: Her iki tarafta da aynı sonucu veren deterministik rastgele seçim
+      // İki oyuncu farklı seçim yaptı: Her iki tarafta da aynı sonucu veren deterministik rastgele seçim (seçilen iki mod arasından)
       const sumCodes = pendingModeMatch.matchId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-      finalMode = (sumCodes % 2 === 0) ? 'timi' : 'normal';
-      resolutionReason = `Farklı modlar seçildi! Sistem rastgele belirledi: ${finalMode === 'timi' ? 'TİMİ MOD (NO LOOK)' : 'NORMAL MOD (LOOK)'}!`;
+      const chosenPool = [myModeChoice, opponentModeChoice];
+      finalMode = chosenPool[sumCodes % chosenPool.length];
+      resolutionReason = `Farklı modlar seçildi! Sistem rastgele belirledi: ${getModeTitle(finalMode)}!`;
     }
 
     modeStatusText.textContent = `${resolutionReason} Arena başlatılıyor...`;
@@ -1233,7 +1288,7 @@ function evaluateModeResolution() {
 }
 
 /* ==========================================================================
-   1v1 ARENA VE 10 SANİYE KURALI
+   1v1 ARENA MOTORU (STANDART & TAHMİN ET MODLARI)
    ========================================================================== */
 
 function launchArenaMatch(matchId, p1, p2, targetTime, chosenMode) {
@@ -1253,46 +1308,84 @@ function launchArenaMatch(matchId, p1, p2, targetTime, chosenMode) {
     p2Result: null
   };
 
-  // Mod Rozeti Güncellemesi
-  if (currentArenaMode === 'timi') {
-    arenaActiveModeBadge.textContent = '🙈 TİMİ MOD (NO LOOK)';
-    arenaActiveModeBadge.className = 'text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/40';
+  // UI Modu Ayarı
+  if (currentArenaMode === 'guess') {
+    // TAHMİN ET MODU
+    arenaActiveModeBadge.textContent = '🧠 TAHMİN ET (Rastgele Durur)';
+    arenaActiveModeBadge.className = 'text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-purple-500/20 text-purple-400 border border-purple-500/40';
+
+    arenaTargetContainer.classList.add('hidden');
+    arenaStandardSection.classList.add('hidden');
+    arenaGuessSection.classList.remove('hidden');
+
+    guessP1Header.textContent = p1;
+    guessP2Header.textContent = p2;
+    guessMysteryDisplay.textContent = '??.??.??';
+    guessStatusNotice.textContent = '⏳ Sayaç gizlice sayıyor... İçinden dikkatle say!';
+    guessStatusNotice.className = 'text-xs sm:text-sm font-semibold text-slate-300 mt-2 animate-pulse';
+
+    guessInputBox.classList.add('hidden');
+    guessWaitingMessage.classList.add('hidden');
+    guessInputSec.value = '';
+    guessInputMs.value = '';
+    guessSubmitBtn.disabled = false;
+
+    myGuess = null;
+    opponentGuess = null;
+    guessHasStopped = false;
+    if (guessTimeoutId) clearTimeout(guessTimeoutId);
+
+    // Rastgele durma zamanı (4.00 - 14.00 saniye arası): Deterministik olarak iki oyuncuda da aynı salisede durur!
+    const sumCodes = matchId.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
+    const randomCentis = 400 + (sumCodes % 1001); // 400 - 1400 centisaniye (4.00 - 14.00 sn)
+    guessStopDurationMs = randomCentis * 10;
+
   } else {
-    arenaActiveModeBadge.textContent = '👁️ NORMAL MOD (LOOK)';
-    arenaActiveModeBadge.className = 'text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-brand-500/20 text-brand-400 border border-brand-500/40';
+    // STANDART MODLAR (TİMİ / NORMAL)
+    if (currentArenaMode === 'timi') {
+      arenaActiveModeBadge.textContent = '🙈 TİMİ MOD (NO LOOK)';
+      arenaActiveModeBadge.className = 'text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/40';
+    } else {
+      arenaActiveModeBadge.textContent = '👁️ NORMAL MOD (LOOK)';
+      arenaActiveModeBadge.className = 'text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-brand-500/20 text-brand-400 border border-brand-500/40';
+    }
+
+    arenaTargetContainer.classList.remove('hidden');
+    arenaStandardSection.classList.remove('hidden');
+    arenaGuessSection.classList.add('hidden');
+
+    // Hedef Zaman Formatlama
+    let tFormatted = '';
+    if (targetTime.unit === 'second') {
+      const tm = String(Math.floor(targetTime.main / 60)).padStart(2, '0');
+      const ts = String(targetTime.main % 60).padStart(2, '0');
+      const tms = String(targetTime.sub % 100).padStart(2, '0');
+      tFormatted = `${tm}.${ts}.${tms} (${targetTime.main}.${tms} Saniye)`;
+    } else if (targetTime.unit === 'millisecond') {
+      tFormatted = `00.00.${String(targetTime.main % 100).padStart(2, '0')} (${targetTime.main} Milisaniye)`;
+    }
+    arenaTargetLabel.textContent = tFormatted;
+
+    arenaP1Name.textContent = p1;
+    arenaP2Name.textContent = p2;
+    arenaP1Time.textContent = '00.00.00';
+    arenaP2Time.textContent = '00.00.00';
+    arenaP1Diff.textContent = 'Hazırlanıyor...';
+    arenaP2Diff.textContent = 'Hazırlanıyor...';
+
+    arenaActionBtn.disabled = true;
+    arenaActionBtn.className = 'w-full py-5 rounded-2xl font-black text-xl tracking-wider uppercase flex items-center justify-center space-x-3 transition-all transform active:scale-95 shadow-xl select-none bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 hover:brightness-110';
+    arenaBtnText.textContent = 'BAŞLAT';
+    arenaBtnIcon.setAttribute('data-lucide', 'play');
+
+    arenaAutoStartNotice.classList.add('hidden');
+    if (arenaAutoStartInterval) clearInterval(arenaAutoStartInterval);
   }
-
-  // Hedef Zaman Formatlama
-  let tFormatted = '';
-  if (targetTime.unit === 'second') {
-    const tm = String(Math.floor(targetTime.main / 60)).padStart(2, '0');
-    const ts = String(targetTime.main % 60).padStart(2, '0');
-    const tms = String(targetTime.sub % 100).padStart(2, '0');
-    tFormatted = `${tm}.${ts}.${tms} (${targetTime.main}.${tms} Saniye)`;
-  } else if (targetTime.unit === 'millisecond') {
-    tFormatted = `00.00.${String(targetTime.main % 100).padStart(2, '0')} (${targetTime.main} Milisaniye)`;
-  }
-  arenaTargetLabel.textContent = tFormatted;
-
-  arenaP1Name.textContent = p1;
-  arenaP2Name.textContent = p2;
-  arenaP1Time.textContent = '00.00.00';
-  arenaP2Time.textContent = '00.00.00';
-  arenaP1Diff.textContent = 'Hazırlanıyor...';
-  arenaP2Diff.textContent = 'Hazırlanıyor...';
-
-  arenaActionBtn.disabled = true;
-  arenaActionBtn.className = 'w-full py-5 rounded-2xl font-black text-xl tracking-wider uppercase flex items-center justify-center space-x-3 transition-all transform active:scale-95 shadow-xl select-none bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 hover:brightness-110';
-  arenaBtnText.textContent = 'BAŞLAT';
-  arenaBtnIcon.setAttribute('data-lucide', 'play');
-
-  arenaAutoStartNotice.classList.add('hidden');
-  if (arenaAutoStartInterval) clearInterval(arenaAutoStartInterval);
 
   vsArenaModal.classList.remove('hidden');
   lucide.createIcons();
 
-  // 3-2-1 Geri Sayım
+  // 3-2-1 Geri Sayım (3 saniye içinde başlar)
   arenaCountdownOverlay.classList.remove('hidden');
   let count = 3;
   arenaCountdownNumber.textContent = count;
@@ -1305,16 +1398,124 @@ function launchArenaMatch(matchId, p1, p2, targetTime, chosenMode) {
       arenaCountdownNumber.textContent = count;
       sounds.playBeep(440, 'triangle', 0.15, 0.3);
     } else if (count === 0) {
-      arenaCountdownNumber.textContent = 'HAZIR!';
+      arenaCountdownNumber.textContent = 'BAŞLA!';
       arenaCountdownNumber.className = 'text-7xl sm:text-8xl font-black text-brand-glow animate-pulse';
       sounds.playStart();
     } else {
       clearInterval(cInterval);
       arenaCountdownOverlay.classList.add('hidden');
-      setupArenaReadyState();
+
+      if (currentArenaMode === 'guess') {
+        startGuessModeRunning();
+      } else {
+        setupArenaReadyState();
+      }
     }
   }, 1000);
 }
+
+/* --- TAHMİN ET MODU AKIŞI --- */
+
+function startGuessModeRunning() {
+  guessHasStopped = false;
+  arenaStartTime = performance.now();
+  sounds.playStart();
+
+  // Gizli sayaç rastgele zamanda kendiliğinden durur!
+  guessTimeoutId = setTimeout(() => {
+    triggerGuessStop();
+  }, guessStopDurationMs);
+}
+
+function triggerGuessStop() {
+  guessHasStopped = true;
+  sounds.playStop();
+  sounds.playBeep(700, 'sawtooth', 0.25, 0.3);
+
+  guessMysteryDisplay.textContent = 'STOP! 🛑';
+  guessStatusNotice.textContent = '🛑 SAYAÇ DURDU! Şimdi saydığın süreyi aşağıya yaz:';
+  guessStatusNotice.className = 'text-xs sm:text-sm font-black text-amber-300 mt-2 animate-bounce';
+
+  guessInputBox.classList.remove('hidden');
+  guessInputSec.focus();
+  lucide.createIcons();
+}
+
+guessSubmitBtn.addEventListener('click', () => {
+  if (myGuess) return;
+
+  const sec = Math.max(0, parseInt(guessInputSec.value) || 0);
+  const ms = Math.max(0, parseInt(guessInputMs.value) || 0);
+  const totalCentis = (sec * 100) + (ms % 100);
+
+  const secStr = String(sec).padStart(2, '0');
+  const msStr = String(ms % 100).padStart(2, '0');
+  const formatted = `${secStr}.${msStr}`;
+
+  myGuess = {
+    sec: sec,
+    ms: ms % 100,
+    totalCentis: totalCentis,
+    formatted: `${formatted} sn`
+  };
+
+  guessSubmitBtn.disabled = true;
+  guessWaitingMessage.classList.remove('hidden');
+  sounds.playBeep(600, 'sine', 0.1, 0.2);
+
+  broadcast({
+    type: 'GUESS_SUBMIT',
+    matchId: currentMatch.matchId,
+    fromUsername: currentUsername,
+    guess: myGuess
+  });
+
+  checkGuessOutcome();
+});
+
+function checkGuessOutcome() {
+  if (!myGuess || !opponentGuess || !currentMatch) return;
+
+  const actualCentis = Math.round(guessStopDurationMs / 10);
+  const actS = String(Math.floor(actualCentis / 100)).padStart(2, '0');
+  const actMs = String(actualCentis % 100).padStart(2, '0');
+  const actualFormatted = `${actS}.${actMs} Saniye`;
+
+  // Süreyi Ortaya Çıkar!
+  guessMysteryDisplay.textContent = `00.${actS}.${actMs}`;
+  guessStatusNotice.textContent = `🎯 Gerçek Durma Süresi: ${actualFormatted}`;
+  guessStatusNotice.className = 'text-sm font-black text-brand-glow mt-2';
+
+  const p1Diff = Math.abs(myGuess.totalCentis - actualCentis);
+  const p2Diff = Math.abs(opponentGuess.totalCentis - actualCentis);
+
+  arenaWinnerBanner.classList.remove('hidden');
+  arenaP1AccuracyLabel.textContent = `${currentMatch.p1} TAHMİNİ: ${myGuess.formatted}`;
+  arenaP2AccuracyLabel.textContent = `${currentMatch.p2} TAHMİNİ: ${opponentGuess.formatted}`;
+
+  arenaP1Accuracy.textContent = `Fark: ${p1Diff} ms`;
+  arenaP2Accuracy.textContent = `Fark: ${p2Diff} ms`;
+
+  if (p1Diff < p2Diff) {
+    arenaWinnerTitle.textContent = `🏆 ${currentMatch.p1} KAZANDI!`;
+    arenaWinnerTitle.className = 'text-2xl sm:text-3xl font-black text-yellow-400 drop-shadow-lg';
+    arenaWinnerDesc.textContent = `Tebrikler! ${myGuess.formatted} tahmininizle gerçek süreye (${actualFormatted}) daha çok yaklaştınız! (Fark: ${p1Diff} ms vs ${p2Diff} ms)`;
+    sounds.playMegaVictory();
+    triggerMegaConfetti();
+  } else if (p2Diff < p1Diff) {
+    arenaWinnerTitle.textContent = `💀 ${currentMatch.p2} KAZANDI!`;
+    arenaWinnerTitle.className = 'text-2xl sm:text-3xl font-black text-rose-400 drop-shadow-lg';
+    arenaWinnerDesc.textContent = `Rakip ${opponentGuess.formatted} tahminiyle gerçek süreye (${actualFormatted}) daha yakın çıktı! (Rakip farkı: ${p2Diff} ms, Sizin farkınız: ${p1Diff} ms)`;
+    sounds.playBeep(220, 'sawtooth', 0.3, 0.2);
+  } else {
+    arenaWinnerTitle.textContent = `🤝 BERABERE!`;
+    arenaWinnerTitle.className = 'text-2xl sm:text-3xl font-black text-cyber-neonBlue drop-shadow-lg';
+    arenaWinnerDesc.textContent = `İnanılmaz! İki oyuncu da hedefe tam ${p1Diff} ms yakınlıkta tahmin yaptı!`;
+    sounds.playGood();
+  }
+}
+
+/* --- STANDART 1v1 MODLARI (TİMİ / NORMAL) AKIŞI --- */
 
 function setupArenaReadyState() {
   arenaActionBtn.disabled = false;
@@ -1373,7 +1574,7 @@ function updateArenaTimer() {
 }
 
 function handleArenaAction() {
-  if (!isArenaActive) return;
+  if (!isArenaActive || currentArenaMode === 'guess') return;
 
   // Kullanıcı henüz başlatmadıysa (10 sn bekleme süresindeyse): BAŞLAT
   if (!arenaRunning && !arenaStopped) {
@@ -1459,6 +1660,8 @@ function checkArenaOutcome() {
 
   arenaWinnerBanner.classList.remove('hidden');
 
+  arenaP1AccuracyLabel.textContent = 'Sizin Başarı Oranınız';
+  arenaP2AccuracyLabel.textContent = 'Rakip Başarı Oranı';
   arenaP1Accuracy.textContent = `%${p1.accuracy}`;
   arenaP2Accuracy.textContent = `%${p2.accuracy}`;
 
@@ -1484,6 +1687,7 @@ function checkArenaOutcome() {
 arenaExitBtn.addEventListener('click', () => {
   cancelAnimationFrame(arenaRafId);
   if (arenaAutoStartInterval) clearInterval(arenaAutoStartInterval);
+  if (guessTimeoutId) clearTimeout(guessTimeoutId);
   isArenaActive = false;
   vsArenaModal.classList.add('hidden');
 });
